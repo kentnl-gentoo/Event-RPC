@@ -1,0 +1,32 @@
+$Id: Changes,v 1.1 2005/04/10 21:07:12 joern Exp $
+
+Revision history and release notes for Event::RPC:
+
+0.82 Sun Apr 10, 2005, joern
+	Notes:
+	- First public release. API is fairly stable.
+	
+	Features:
+	- User/password based authentication added.
+	- Full documentation added.
+	- Test suite added which covers all connection
+	  types and the most important features.
+
+0.81 Sun Mar 13, 2005, joern
+	Notes:
+	- Still an internal release, incomplete documentation, no
+	  test suite.
+	
+	Features:
+	- Support for SSL encryption added using IO::Socket::SSL.
+	- Event loop abstraction. Event::RPC now works with Event
+	  and Glib and can be easily extended for other event loop
+	  frameworks. Thanks to Rocco Caputo for the suggestion.
+
+0.80 Sun Mar 13, 2005, joern
+	Notes:
+	- A non public release. Only announced on the perl-loop mailing
+	  list for the namespace request and to get comments. Module
+	  is fully working but API isn't documented yet very well.
+	  Security stuff (SSL encryption, some password authentication)
+	  is missing also a complete test suite.
