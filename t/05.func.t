@@ -9,22 +9,22 @@ if ( not $depend_modules ) {
 	plan skip_all => "Neither Event nor Glib installed";
 }
 
-plan tests => 14;
+plan tests => 13;
 
-my $PORT = 61524;
+my $PORT = 27811;
 
 # start server in background, without logging
-my $server = qx[ $^X t/server.pl -d -l 0 -p $PORT ];
+my $server = qx[ $^X t/server.pl -S 1 -d -l 0 -p $PORT ];
 my ($pid) = $server =~ /SERVER_PID=(\d+)/;
 die "server not started: $server" unless $pid;
-END { kill 1, $pid }; # prevent server from hanging around if a test fails
+END { kill 1, $pid if $pid }; # prevent server from hanging around if a test fails
 
 # load client class
 use_ok('Event::RPC::Client');
 
 # create client instance
 my $client = Event::RPC::Client->new (
-  server   => "localhost",
+  host     => "localhost",
   port     => $PORT,
 );
 
@@ -83,13 +83,9 @@ ok ( @result == 3                &&
      "complex parameter transfer"
 );
 
-# call quit method, which stops the server after one second
-ok ($object->quit =~ /stops/, "quit method called");
-
 # disconnect client
 ok ($client->disconnect, "client disconnected");
 
 # wait on server to quit
 wait;
 ok (1, "server stopped");
-sleep 1;

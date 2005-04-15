@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.1 2005/04/10 21:07:12 joern Exp $
+# $Id: Makefile.PL,v 1.2 2005/04/15 21:11:49 joern Exp $
 
 use strict;
 use ExtUtils::MakeMaker;
@@ -18,8 +18,7 @@ if ( !$loop_modules ) {
 eval { require IO::Socket::SSL } || do {
     print "\n";
     print "NOTE: Event::RPC is capable of SSL encrypted connections,\n";
-    print "      but your Perl is missing the the IO::Socket::SSL\n";
-    print "      module.\n";
+    print "      but your Perl is missing the IO::Socket::SSL module.\n";
     print "\n";
 };
 

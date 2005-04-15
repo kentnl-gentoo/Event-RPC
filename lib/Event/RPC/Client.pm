@@ -1,4 +1,4 @@
-# $Id: Client.pm,v 1.1 2005/04/10 21:07:12 joern Exp $
+# $Id: Client.pm,v 1.3 2005/04/15 22:00:53 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -17,35 +17,57 @@ use Carp;
 use strict;
 use IO::Socket;
 
-sub get_server			{ shift->{server}			}
+sub get_host			{ shift->{host}				}
 sub get_port			{ shift->{port}				}
 sub get_sock			{ shift->{sock}				}
+sub get_classes			{ shift->{classes}			}
 sub get_loaded_classes		{ shift->{loaded_classes}		}
 sub get_error_cb		{ shift->{error_cb}			}
 sub get_ssl			{ shift->{ssl}				}
 sub get_auth_user		{ shift->{auth_user}			}
 sub get_auth_pass		{ shift->{auth_pass}			}
 sub get_connected		{ shift->{connected}			}
+sub get_server			{ shift->{server}			}
+sub get_server_version		{ shift->{server_version}		}
+sub get_server_protocol		{ shift->{server_protocol}		}
+sub get_client_version		{ $Event::RPC::VERSION			}
+sub get_client_protocol		{ $Event::RPC::PROTOCOL			}
 
-sub set_server			{ shift->{server}		= $_[1]	}
+sub set_host			{ shift->{host}			= $_[1]	}
 sub set_port			{ shift->{port}			= $_[1]	}
 sub set_sock			{ shift->{sock}			= $_[1]	}
+sub set_classes			{ shift->{classes}		= $_[1]	}
 sub set_loaded_classes		{ shift->{loaded_classes}	= $_[1]	}
 sub set_error_cb		{ shift->{error_cb}		= $_[1]	}
 sub set_ssl			{ shift->{ssl}			= $_[1]	}
 sub set_auth_user		{ shift->{auth_user}		= $_[1]	}
 sub set_auth_pass		{ shift->{auth_pass}		= $_[1]	}
 sub set_connected		{ shift->{connected}		= $_[1]	}
+sub set_server			{ shift->{server}		= $_[1]	}
+sub set_server_version		{ shift->{server_version}	= $_[1]	}
+sub set_server_protocol		{ shift->{server_protocol}	= $_[1]	}
 
 sub new {
 	my $class = shift;
 	my %par = @_;
-	my  ($server, $port, $error_cb, $ssl, $auth_user, $auth_pass) =
-	@par{'server','port','error_cb','ssl','auth_user','auth_pass'};
+	my  ($server, $host, $port, $classes, $error_cb) =
+	@par{'server','host','port','classes','error_cb'};
+	my  ($ssl, $auth_user, $auth_pass) =
+	@par{'ssl','auth_user','auth_pass'};
+ 
+ 	$server ||= '';
+	$host   ||= '';
+ 
+	if ( $server ne '' and $host eq '' ) {
+		warn "Option 'server' is deprecated. Use 'host' instead.";
+		$host = $server;
+	}
 	
 	my $self = bless {
-		server	        => $server,
+		host		=> $server,
+		server	        => $host,
 		port  	        => $port,
+		classes		=> $classes,
 		ssl		=> $ssl,
 		auth_user	=> $auth_user,
 		auth_pass	=> $auth_pass,
@@ -92,6 +114,8 @@ sub connect {
 
 	$self->set_sock($sock);
 
+	$self->check_version;
+
 	my $auth_user = $self->get_auth_user;
 	my $auth_pass = $self->get_auth_pass;
 
@@ -101,10 +125,17 @@ sub connect {
 			user => $auth_user,
 			pass => $auth_pass,
 		});
-		croak $rc->{msg} if not $rc->{ok};
+		if ( not $rc->{ok} ) {
+			$self->disconnect;
+			croak $rc->{msg};
+		}
 	}
 	
-	$self->load_all_classes;
+	if ( not $self->get_classes ) {
+		$self->load_all_classes;
+	} else {
+		$self->load_classes;
+	}
 	
 	$self->set_connected(1);
 	
@@ -154,15 +185,71 @@ sub error {
 	1;
 }
 
+sub check_version {
+	my $self = shift;
+	
+	my $rc = $self->send_request ({
+		cmd   => 'version',
+	});
+	
+	$self->set_server_version($rc->{version});
+	$self->set_server_protocol($rc->{protocol});
+	
+	if ( $rc->{version} != $self->get_client_version ) {
+		warn "WARNING: Server version $rc->{version} != ".
+		     "client version ".$self->get_client_version;
+	}
+	
+	if ( $rc->{protocol} < $self->get_client_protocol ) {
+		die "FATAL: Server protocol version $rc->{protocol} < ".
+		    "client protocol version ".$self->get_client_protocol;
+	}
+	
+	1;
+}
+
 sub load_all_classes {
 	my $self = shift;
 	
+	my $rc = $self->send_request ({
+		cmd   => 'class_info_all',
+	});
+	
+	my $class_info_all = $rc->{class_info_all};
+	
+	foreach my $class ( keys %{$class_info_all} ) {
+		$self->load_class ($class, $class_info_all->{$class} );
+	}
+	
+	1;
+}
+
+sub load_classes {
+	my $self = shift;
+	
+	my $classes = $self->get_classes;
+	my %classes;
+	@classes{@{$classes}} = (1) x @{$classes};
+
 	my $rc = $self->send_request ({
 		cmd   => 'classes_list',
 	});
 	
 	foreach my $class ( @{$rc->{classes}} ) {
-		$self->load_class ($class);
+		next if not $classes{$class};
+		$classes{$class} = 0;
+
+		my $rc = $self->send_request ({
+			cmd   => 'class_info',
+			class => $class,
+		});
+
+		$self->load_class ($class, $rc->{methods});
+	}
+
+	foreach my $class ( @{$classes} ) {
+		warn "WARNING: Class '$class' not exported by server"
+			if $classes{$class};
 	}
 	
 	1;
@@ -170,25 +257,17 @@ sub load_all_classes {
 
 sub load_class {
 	my $self = shift;
-	my ($class) = @_;
+	my ($class, $methods) = @_;
 
 	my $loaded_classes = $self->get_loaded_classes;
-
 	return 1 if $loaded_classes->{$class};
-
 	$loaded_classes->{$class} = 1;
 
-	my $rc = $self->send_request ({
-		cmd   => 'class_info',
-		class => $class,
-	});
-	
 	my $local_method;
 	my $local_class = $class;
-	my $methods = $rc->{methods};
 
 	# create local destructor for this class
-	if ( 1 ) {
+	{
 		no strict 'refs';
 		my $local_method = $local_class.'::'."DESTROY";
 		*$local_method = sub {
@@ -207,8 +286,6 @@ sub load_class {
 
 		my $method_type = $methods->{$method};
 
-		# print "Registering local method: $local_method / type=$method_type\n";
-		
 		if ( $method_type eq '_constructor' ) {
 			# this is a constructor for this class
 			my $request_method = $class.'::'.$method;
@@ -326,13 +403,15 @@ Event::RPC::Client - Client API to connect to Event::RPC Servers
 
   use Event::RPC::Client;
 
-  my $client = Event::RPC::Client->new (
+  my $rpc_client = Event::RPC::Client->new (
     #-- Required arguments
-    server   => "localhost",
-    port     => 5555,
+    host => "localhost",
+    port => 5555,
     
     #-- Optional arguments
-    ssl      => 1,
+    classes => [ "Event::RPC::Test" ],
+
+    ssl     => 1,
 
     auth_user => "fred",
     auth_pass => Event::RPC->crypt("fred",$password),
@@ -345,7 +424,7 @@ Event::RPC::Client - Client API to connect to Event::RPC Servers
     },
   );
 
-  $client->connect;
+  $rpc_client->connect;
   
   #-- And now use classes and methods the server
   #-- allows to access via RPC, here My::TestModule
@@ -355,7 +434,7 @@ Event::RPC::Client - Client API to connect to Event::RPC Servers
   $obj->set_data("new foobar");
   print "updated data: ".$obj->get_data."\n";
 
-  $client->disconnect;
+  $rpc_client->disconnect;
 
 =head1 DESCRIPTION
 
@@ -380,6 +459,11 @@ a SSL connection or user authentication you need to supply
 the corresponding options as well, otherwise connecting will
 fail.
 
+All options described here may be passed to the new() constructor of
+Event::RPC::Client. As well you may set or modify them using set_OPTION style
+mutators, but not after connect() was called!
+All options may be read using get_OPTION style accessors.
+
 =head2 REQUIRED OPTIONS
 
 These are necessary to connect the server:
@@ -397,7 +481,24 @@ This is the TCP port the server is listening to.
 
 =back
 
-=head2 SSL OPTIONS
+=head2 CLASS IMPORT OPTION
+
+=over 4
+
+=item B<classes>
+
+This is reference to a list of classes which should be imported
+into the client. You get a warning if you request a class which
+is not exported by the server.
+
+By default all server classes are imported. Use this feature if
+your server exports a huge list of classes, but your client
+doesn't need all of them. This saves memory in the client and
+connect performance increases.
+
+=back
+
+=head2 SSL OPTION
 
 If the server accepts only SSL connections you need to enable
 ssl here in the client as well:
@@ -427,7 +528,7 @@ The corresponding password, encrypted using Perl's crypt() function,
 using the username as the salt.
 
 Event::RPC has a convenience function for generating such a crypted
-password, although it's currently just a 1:1 wrapper around Perl's
+password, although it's currently just a wrapper around Perl's
 builtin crypt() function, but probably this changes someday, so better
 use this method:
 
@@ -437,6 +538,46 @@ use this method:
 
 If the passed credentials are invalid the Event::RPC::Client->connect()
 method throws a correspondent exception.
+
+=head1 METHODS
+
+=over 4
+
+=item $rpc_client->B<connect>
+
+This establishes the configured connection to the server. An exception
+is thrown if something goes wrong, e.g. server not available, credentials
+are invalid or something like this.
+
+=item $rpc_client->B<disconnect>
+
+Closes the connection to the server. You may omit explicit disconnecting
+since it's done automatically once the Event::RPC::Client object gets
+destroyed.
+
+=back
+
+=head1 READY ONLY ATTRIBUTES
+
+=over 4
+
+=item $rpc_client->B<get_server_version>
+
+Returns the Event::RPC version number of the server after connecting.
+
+=item $rpc_client->B<get_server_protocol>
+
+Returns the Event::RPC protocol number of the server after connecting.
+
+=item $rpc_client->B<get_client_version>
+
+Returns the Event::RPC version number of the client.
+
+=item $rpc_client->B<get_client_protocol>
+
+Returns the Event::RPC protocol number of the client.
+
+=back
 
 =head1 AUTHORS
 

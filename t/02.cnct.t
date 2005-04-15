@@ -11,25 +11,25 @@ if ( not $depend_modules ) {
 
 plan tests => 6;
 
-my $PORT = 61524;
+my $PORT = 27811;
 
 # start server in background, without logging
-my $server = qx[ $^X t/server.pl -d -l 0 -p $PORT ];
+my $server = qx[ $^X t/server.pl -S 1 -d -l 0 -p $PORT ];
 my ($pid) = $server =~ /SERVER_PID=(\d+)/;
-die "server not started: $server" unless $pid;
-END { kill 1, $pid }; # prevent server from hanging around if a test fails
+ok ($pid, "start server");
+END { kill 1, $pid if $pid }; # prevent server from hanging around if a test fails
 
 # load client class
 use_ok('Event::RPC::Client');
 
-# create client instance
-my $client = Event::RPC::Client->new (
-  server   => "localhost",
-  port     => $PORT,
-);
-
 # wait on server to come up
 sleep 1;
+
+# create client instance
+my $client = Event::RPC::Client->new (
+  host   => "localhost",
+  port   => $PORT,
+);
 
 # connect to server
 $client->connect;
@@ -41,13 +41,10 @@ my $object = Event_RPC_Test->new (
 );
 ok ((ref $object)=~/Event_RPC_Test/, "object created via RPC");
 
-# call quit method, which stops the server after one second
-ok ($object->quit =~ /stops/, "quit method called");
-
-# disconnect client
+# disconnect client (this will also stop the server,
+# because we started it with the -S option)
 ok ($client->disconnect, "client disconnected");
 
 # wait on server to quit
 wait;
-ok (1, "server stopped");
-sleep 1;
+ok (1, "stop server");

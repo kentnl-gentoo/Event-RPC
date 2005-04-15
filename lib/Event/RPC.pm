@@ -1,6 +1,7 @@
 package Event::RPC;
 
-$VERSION = "0.82";
+$VERSION  = "0.83";
+$PROTOCOL = "1.00";
 
 sub crypt {
 	my $class = shift;

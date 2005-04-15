@@ -11,6 +11,8 @@ lib/Event/RPC/Loop/Event.pm
 lib/Event/RPC/Loop/Glib.pm
 lib/Event/RPC/Message.pm
 lib/Event/RPC/Server.pm
+lib/Event/RPC/Connection.pm
+lib/Event/RPC/LogConnection.pm
 t/01.use.t
 t/02.cnct.t
 t/03.cnct-auth.t
@@ -21,3 +23,9 @@ t/server.pl
 t/ssl/server.crt
 t/ssl/server.csr
 t/ssl/server.key
+examples/server.pl
+examples/client.pl
+examples/Test_class.pm
+examples/ssl/server.key
+examples/ssl/server.csr
+examples/ssl/server.crt

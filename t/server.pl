@@ -10,7 +10,7 @@ use Getopt::Std;
 
 my $USAGE = <<__EOU;
 
-Usage: server.pl [-l log-level] [-s] [-a user:pass] [-L loop-module] 
+Usage: server.pl [-l log-level] [-s] [-a user:pass] [-L loop-module] [-S cnt]
 
 Description:
   Event::RPC server demonstration program. Execute this from
@@ -24,6 +24,8 @@ Options:
   -a user:pass       Require authorization
   -L loop-module     Event loop module to use.
                      Default: Event::RPC::Loop::Event
+  -S cnt             Shutdown server after this number of
+                     client disconnects
 
 __EOU
 
@@ -36,7 +38,7 @@ sub HELP_MESSAGE {
 
 main: {
     my %opts;
-    my $opts_ok = getopts('dL:l:a:sp:',\%opts);
+    my $opts_ok = getopts('dS:L:l:a:sp:',\%opts);
    
     HELP_MESSAGE() unless $opts_ok;
 
@@ -82,7 +84,9 @@ main: {
     
     #-- Create a Server instance and declare the
     #-- exported interface
-    my $server = Event::RPC::Server->new (
+    my $disconnect_cnt = $opts{S};
+    my $server;
+    $server = Event::RPC::Server->new (
       name               => "test daemon",
       port               => $port,
       logger             => $logger,
@@ -101,6 +105,15 @@ main: {
 	  multi		=> '_object',
 	  echo		=> 1,
 	},
+      },
+      connection_hook   => $disconnect_cnt == 0 ? undef : sub {
+      	  my ($conn, $event) = @_;
+	  return if $event eq 'connect';
+	  --$disconnect_cnt;
+	  $server->stop
+	      if $disconnect_cnt <= 0 &&
+	         $server->get_clients_connected == 0;
+	  1;
       },
     );
 

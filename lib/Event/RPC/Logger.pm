@@ -1,4 +1,4 @@
-# $Id: Logger.pm,v 1.1 2005/04/10 21:07:12 joern Exp $
+# $Id: Logger.pm,v 1.2 2005/04/15 21:13:35 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -153,7 +153,7 @@ sockets as well.
 
 =head1 CONFIGURATION OPTIONS
 
-This is a list of options you can pass to the new()  constructor:
+This is a list of options you can pass to the new() constructor:
 
 =over 4
 
@@ -168,7 +168,8 @@ All log messages are printed into this list of filehandles.
 =item B<min_level>
 
 This is the minimum log level. Output of messages with a lower level
-is suppressed.
+is suppressed. This option may be altered using set_min_level() even
+in a running server.
 
 =back
 
