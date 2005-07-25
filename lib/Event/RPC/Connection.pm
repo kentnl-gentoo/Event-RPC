@@ -113,7 +113,7 @@ sub input {
 	my $request = eval { $message->read } || '';
 	my $error = $@;
 
-	return if not defined $request and not $error;
+	return if $request eq '' && $error eq '';
 
 	$self->set_message(undef);
 

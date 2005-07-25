@@ -1,4 +1,4 @@
-# $Id: Message.pm,v 1.1 2005/04/10 21:07:12 joern Exp $
+# $Id: Message.pm,v 1.2 2005/07/25 15:45:35 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -60,7 +60,7 @@ sub read {
 
 	my $buffer_length = length($self->{buffer}||'');
 
-	$DEBUG && print "DEBUG: going to read packet...\n";
+	$DEBUG && print "DEBUG: going to read packet... (buffer_length=$buffer_length)\n";
 
 	my $rc = sysread (
 		$self->get_sock,
@@ -76,7 +76,8 @@ sub read {
 
 	$buffer_length = length($self->{buffer});
 
-	$DEBUG && print "DEBUG: more to read...\n" if $self->{length} != $buffer_length;
+	$DEBUG && print "DEBUG: more to read... ($self->{length} != $buffer_length)\n"
+		if $self->{length} != $buffer_length;
 
 	return if $self->{length} != $buffer_length;
 
