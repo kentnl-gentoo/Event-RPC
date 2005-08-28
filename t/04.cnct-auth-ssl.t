@@ -21,17 +21,17 @@ my $PORT = 27811;
 my $AUTH_USER = "foo";
 my $AUTH_PASS = "bar";
 
-# start server in background, without logging
-my $server = qx[ $^X t/server.pl -S 1 -d -s -a $AUTH_USER:$AUTH_PASS -l 0 -p $PORT ];
-my ($pid) = $server =~ /SERVER_PID=(\d+)/;
-die "server not started: $server" unless $pid;
-END { kill 1, $pid if $pid }; # prevent server from hanging around if a test fails
-
 # load client class
 use_ok('Event::RPC::Client');
 
-# wait on server to come up
-sleep 1;
+# start server in background, without logging
+require "t/Event_RPC_Test_Server.pm";
+Event_RPC_Test_Server->start_server (
+  p => $PORT,
+  a => "$AUTH_USER:$AUTH_PASS",
+  s => 1,
+  S => 1,
+);
 
 # create client instance
 my $client = Event::RPC::Client->new (
@@ -47,7 +47,7 @@ eval { $client->connect };
 ok($@ ne '', "connection failed with wrong pw");
 
 # now set correct password
-$client->set_auth_pass(Event::RPC->crypt($AUTH_USER,$AUTH_PASS)),
+$client->set_auth_pass(Event::RPC->crypt($AUTH_USER,$AUTH_PASS));
 
 # connect to server with correct password
 $client->connect;

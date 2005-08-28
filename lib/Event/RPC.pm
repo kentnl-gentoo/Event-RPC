@@ -1,6 +1,6 @@
 package Event::RPC;
 
-$VERSION  = "0.84";
+$VERSION  = "0.85";
 $PROTOCOL = "1.00";
 
 sub crypt {

@@ -1,47 +1,45 @@
-#!/usr/bin/perl -w
+package Event_RPC_Test_Server;
 
 use strict;
 
-use strict;
-use lib qw(t);
 use Event::RPC::Server;
 use Event::RPC::Logger;
-use Getopt::Std;
+use lib qw(t);
 
-my $USAGE = <<__EOU;
+sub start_server {
+    my $class = shift;
+    my %opts = @_;
 
-Usage: server.pl [-l log-level] [-s] [-a user:pass] [-L loop-module] [-S cnt]
+    #-- fork
+    my $server_pid = fork();
+    die "can't fork" unless defined $server_pid;
+    
+    #-- client tries to make a log connection to
+    #-- verify that the server is up and running
+    #-- (20 times with a usleep of 0.25, so the
+    #--  overall timeout is 10 seconds)
+    if ( $server_pid ) {
+        for ( 1..20 ) {
+	    eval {
+	        Event::RPC::Client->log_connect (
+		    server => "localhost",
+		    port   => $opts{p}+1,
+	        );
+	    };
+	    #-- return to client code if connect succeeded
+	    return if !$@;
+	    #-- bail out if the limit is reached
+	    if ( $_ == 20 ) {
+	        die "Couldn't start server";
+	    }
+	    #-- wait a quarter second...
+	    select(undef, undef, undef, 0.25);
+	}
+    }
 
-Description:
-  Event::RPC server demonstration program. Execute this from
-  the distribution's base or examples/ directory. Then execute
-  examples/client.pl on another console.
-
-Options:
-  -p                 RPC port number. Default: 5555
-  -l log-level       Logging level. Default: 4
-  -s                 Use SSL encryption
-  -a user:pass       Require authorization
-  -L loop-module     Event loop module to use.
-                     Default: Event::RPC::Loop::Event
-  -S cnt             Shutdown server after this number of
-                     client disconnects
-
-__EOU
-
-sub HELP_MESSAGE {
-	my ($fh) = @_;
-	$fh ||= \*STDOUT;
-	print $fh $USAGE;
-	exit;
-}
-
-main: {
-    my %opts;
-    my $opts_ok = getopts('dS:L:l:a:sp:',\%opts);
-   
-    HELP_MESSAGE() unless $opts_ok;
-
+    #-- This code is mainly copied from the server.pl
+    #-- example and works with a command line style
+    #-- %opts hash
     my %ssl_args;
     if ( $opts{s} ) {
       %ssl_args = (
@@ -82,14 +80,15 @@ main: {
     
     my $port = $opts{p} || 5555;
     
+    my $disconnect_cnt = $opts{S};
+    
     #-- Create a Server instance and declare the
     #-- exported interface
-    my $disconnect_cnt = $opts{S};
     my $server;
     $server = Event::RPC::Server->new (
       name               => "test daemon",
       port               => $port,
-      logger             => $logger,
+#      logger             => $logger,
       loop               => $loop,
       start_log_listener => 1,
       %auth_args,
@@ -106,7 +105,7 @@ main: {
 	  echo		=> 1,
 	},
       },
-      connection_hook   => $disconnect_cnt == 0 ? undef : sub {
+      connection_hook   => sub {
       	  my ($conn, $event) = @_;
 	  return if $event eq 'connect';
 	  --$disconnect_cnt;
@@ -117,25 +116,11 @@ main: {
       },
     );
 
-    daemonize() if $opts{d};
-
     #-- Start the server resp. the Event loop.
     $server->start;
-}
-
-sub daemonize {
-    require POSIX;
-    defined(my $pid = fork)   or die "Can't fork: $!";
-    if ( $pid ) {
-	print "SERVER_PID=$pid\n";
-	exit if $pid;
-    }
-    umask 0;
-    open STDIN, '/dev/null'   or die "Can't read /dev/null: $!";
-    open STDOUT, '>/dev/null' or die "Can't write to /dev/null: $!";
-    open STDERR, '>/dev/null' or die "Can't write to /dev/null: $!";
-    POSIX::setsid()           or die "Can't start a new session: $!";
-    1;
+    
+    #-- Exit the program
+    exit;
 }
 
 1;

@@ -9,21 +9,19 @@ if ( not $depend_modules ) {
 	plan skip_all => "Neither Event nor Glib installed";
 }
 
-plan tests => 6;
+plan tests => 5;
 
 my $PORT = 27811;
-
-# start server in background, without logging
-my $server = qx[ $^X t/server.pl -S 1 -d -l 0 -p $PORT ];
-my ($pid) = $server =~ /SERVER_PID=(\d+)/;
-ok ($pid, "start server");
-END { kill 1, $pid if $pid }; # prevent server from hanging around if a test fails
 
 # load client class
 use_ok('Event::RPC::Client');
 
-# wait on server to come up
-sleep 1;
+# start server in background, without logging
+require "t/Event_RPC_Test_Server.pm";
+Event_RPC_Test_Server->start_server (
+  p => $PORT,
+  S => 1,
+);
 
 # create client instance
 my $client = Event::RPC::Client->new (

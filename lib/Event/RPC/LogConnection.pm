@@ -43,7 +43,8 @@ sub disconnect {
 	my $self = shift;
 
 	my $sock = $self->get_sock;
-	$self->get_server->get_logger->remove_fh($sock);
+	$self->get_server->get_logger->remove_fh($sock)
+		if $self->get_server->get_logger;
 	$self->get_server->get_loop->del_io_watcher($self->get_watcher);
 	$self->set_watcher(undef);
 	close $sock;

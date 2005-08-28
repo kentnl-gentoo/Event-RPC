@@ -1,6 +1,14 @@
-$Id: Changes,v 1.4 2005/07/25 15:45:57 joern Exp $
+$Id: Changes,v 1.6 2005/08/28 18:30:53 joern Exp $
 
 Revision history and release notes for Event::RPC:
+
+0.85 Sun Aug 28, 2005, joern
+	Bugfixes:
+	- Make server more bullet proof: handle log connections
+	  even if no logger is set, but a log listener was started.
+	- Event::RPC::Server->new didn't recognize the
+	  'connection_hook' parameter.
+	- Try making the testsuite more stable with Win32.
 
 0.84 Mon Jul 25, 2005, joern
 	Bugfixes:

@@ -1,4 +1,4 @@
-# $Id: Server.pm,v 1.2 2005/04/15 21:09:51 joern Exp $
+# $Id: Server.pm,v 1.3 2005/08/05 21:41:39 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -78,8 +78,8 @@ sub new {
 	@par{'ssl','ssl_key_file','ssl_cert_file','ssl_passwd_cb'};
 	my  ($auth_required, $auth_passwd_href, $loop) =
 	@par{'auth_required','auth_passwd_href','loop'};
-	my  ($client_hook, $auto_reload_modules) =
-	@par{'client_hook','auto_reload_modules'};
+	my  ($connection_hook, $auto_reload_modules) =
+	@par{'connection_hook','auto_reload_modules'};
 
 	$name ||= "Event-RPC-Server";
 	
@@ -117,7 +117,7 @@ sub new {
 		auth_passwd_href	=> $auth_passwd_href,
 
 		auto_reload_modules	=> $auto_reload_modules,
-		client_hook		=> $client_hook,
+		connection_hook		=> $connection_hook,
 
 		rpc_socket		=> undef,
 		loaded_classes		=> {},
@@ -245,7 +245,6 @@ sub start {
 sub stop {
 	my $self = shift;
 
-use Carp; Carp::cluck();
 	$self->get_loop->leave;
 	
 	1;
@@ -275,7 +274,8 @@ sub accept_new_log_client {
 
 	$self->set_log_clients_connected ( 1 + $self->get_log_clients_connected );
 	$self->get_logging_clients->{$log_client->get_cid} = $log_client;
-	$self->get_logger->add_fh($client_socket);
+	$self->get_logger->add_fh($client_socket)
+		if $self->get_logger;
 
 	$self->log(2, "New log client connected");
 
