@@ -1,4 +1,4 @@
-# $Id: Server.pm,v 1.3 2005/08/05 21:41:39 joern Exp $
+# $Id: Server.pm,v 1.4 2005/12/17 15:05:31 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -42,6 +42,7 @@ sub get_auth_passwd_href	{ shift->{auth_passwd_href}		}
 sub get_listeners_started	{ shift->{listeners_started}		}
 sub get_connection_hook		{ shift->{connection_hook}		}
 sub get_auto_reload_modules	{ shift->{auto_reload_modules}		}
+sub get_active_connection       { shift->{active_connection}            }
 
 sub set_host			{ shift->{host}			= $_[1]	}
 sub set_port			{ shift->{port}			= $_[1]	}
@@ -65,6 +66,7 @@ sub set_auth_passwd_href	{ shift->{auth_passwd_href}	= $_[1]	}
 sub set_listeners_started	{ shift->{listeners_started}	= $_[1]	}
 sub set_connection_hook		{ shift->{connection_hook}	= $_[1]	}
 sub set_auto_reload_modules	{ shift->{auto_reload_modules}	= $_[1]	}
+sub set_active_connection       { shift->{active_connection}    = $_[1] }
 
 my $INSTANCE;
 sub instance { $INSTANCE }
@@ -126,6 +128,7 @@ sub new {
 		clients_connected	=> 0,
 		listeners_started	=> 0,
 		log_clients_connected	=> 0,
+                active_connection       => undef,
 	}, $class;
 
 	$INSTANCE = $self;
@@ -747,6 +750,12 @@ Returns the number of currently connected Event::RPC clients.
 =item $rpc_server->B<get_log_clients_connected>
 
 Returns the number of currently connected logging clients.
+
+=item $rpc_server->B<get_active_connection>
+
+This returns the currently active Event::RPC::Connection object
+representing the connection resp. the client which requested
+method invocation.
 
 =back
 

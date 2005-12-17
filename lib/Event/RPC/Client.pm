@@ -1,4 +1,4 @@
-# $Id: Client.pm,v 1.3 2005/04/15 22:00:53 joern Exp $
+# $Id: Client.pm,v 1.4 2005/12/17 15:09:59 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -179,7 +179,7 @@ sub error {
 	if ( $error_cb ) {
 		&$error_cb($self, $message);
 	} else {
-		croak "Unhandled error in client/server communication";
+		die "Unhandled error in client/server communication: $message";
 	}
 	
 	1;
@@ -195,7 +195,7 @@ sub check_version {
 	$self->set_server_version($rc->{version});
 	$self->set_server_protocol($rc->{protocol});
 	
-	if ( $rc->{version} != $self->get_client_version ) {
+	if ( $rc->{version} ne $self->get_client_version ) {
 		warn "WARNING: Server version $rc->{version} != ".
 		     "client version ".$self->get_client_version;
 	}
@@ -538,6 +538,35 @@ use this method:
 
 If the passed credentials are invalid the Event::RPC::Client->connect()
 method throws a correspondent exception.
+
+=head2 ERROR HANDLING
+
+Any exceptions thrown on the server during execution of a remote
+method will result in a corresponding exception on the client. So
+you can use normal exception handling with eval {} when executing
+remote methods.
+
+But besides this the network connection between your client and
+the server may break at any time. This raises an exception as well,
+but you can override this behaviour with the following attribute:
+
+=over 4
+
+=item B<error_cb>
+
+This subroutine is called if any error occurs in the network
+communication between the client and the server. The actual
+Event::RPC::Client object and an error string are passed
+as arguments.
+
+This is B<no> generic exception handler for exceptions thrown from the
+executed methods on the server! If you like to catch such
+exceptions you need to put an eval {} around your method calls,
+as you would do for local method calls.
+
+If you don't specify an B<error_cb> an exception is thrown instead.
+
+=back
 
 =head1 METHODS
 

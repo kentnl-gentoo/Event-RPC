@@ -1,6 +1,6 @@
 package Event::RPC;
 
-$VERSION  = "0.85";
+$VERSION  = "0.86";
 $PROTOCOL = "1.00";
 
 sub crypt {
@@ -56,6 +56,32 @@ Also the methods on the server newer know whether they are called locally
 or from a connected client. Your application logic is not affected by Event::RPC at all, at least if it has a rudimentary clean OO design.
 
 For details on implementing servers and clients please refer to the man pages of Event::RPC::Server and Event::RPC::Client.
+
+=head1 REQUIREMENTS
+
+Event::RPC needs either one of the following modules:
+
+  Event
+  Glib
+
+for event handling resp. mainloop implementation.
+
+If you like to use SSL encryption you need to install
+
+  IO::Socket::SSL
+
+which requires
+
+  Net::SSLeay
+
+=head1 INSTALLATION
+
+If your system meets the requirements mentioned above, installation
+is just:
+
+  perl Makefile.PL
+  make test
+  make install
 
 =head1 COMPLETE EXAMPLE
 

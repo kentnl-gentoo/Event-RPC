@@ -9,7 +9,7 @@ if ( not $depend_modules ) {
 	plan skip_all => "Neither Event nor Glib installed";
 }
 
-plan tests => 13;
+plan tests => 15;
 
 my $PORT = 27811;
 
@@ -29,6 +29,9 @@ my $client = Event::RPC::Client->new (
   port     => $PORT,
 );
 
+# count created objects
+my $object_cnt = 0;
+
 # connect to server
 $client->connect;
 ok(1, "connected");
@@ -38,6 +41,7 @@ my $data = "Some test data. " x 6;
 my $object = Event_RPC_Test->new (
 	data => $data
 );
+++$object_cnt;
 ok ((ref $object)=~/Event_RPC_Test/, "object created via RPC");
 
 # test data
@@ -51,6 +55,7 @@ ok ($object->get_data eq "foo", "get data");
 
 # object transfer
 my $clone;
+++$object_cnt;
 ok ( $clone = $object->clone, "object transfer");
 
 # check clone
@@ -61,7 +66,8 @@ ok ( $clone->get_data eq 'bar' &&
 
 # transfer a list of objects
 my ($lref, $href) = $object->multi(10);
-ok ( @$lref == 10 && $lref->[5]->get_data == 5, "multi object list");
+$object_cnt += 10;
+ok ( @$lref       == 10 && $lref->[5]->get_data == 5, "multi object list");
 ok ( keys(%$href) == 10 && $href->{4}->get_data == 4, "multi object hash");
 
 # complex parameter transfer
@@ -80,6 +86,12 @@ ok ( @result == 3                &&
      ,
      "complex parameter transfer"
 );
+
+# get connection cid
+ok ($object->get_cid == 1, "access connection object");
+
+# get client object cnt via connection
+ok ($object->get_object_cnt == $object_cnt, "client object cnt via connection");
 
 # disconnect client
 ok ($client->disconnect, "client disconnected");

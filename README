@@ -55,6 +55,30 @@ DESCRIPTION
     For details on implementing servers and clients please refer to the man
     pages of Event::RPC::Server and Event::RPC::Client.
 
+REQUIREMENTS
+    Event::RPC needs either one of the following modules:
+
+      Event
+      Glib
+
+    for event handling resp. mainloop implementation.
+
+    If you like to use SSL encryption you need to install
+
+      IO::Socket::SSL
+
+    which requires
+
+      Net::SSLeay
+
+INSTALLATION
+    If your system meets the requirements mentioned above, installation is
+    just:
+
+      perl Makefile.PL
+      make test
+      make install
+
 COMPLETE EXAMPLE
       Server:
       ==================================================

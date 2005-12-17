@@ -1,4 +1,4 @@
-# $Id: Event_RPC_Test.pm,v 1.1 2005/04/10 21:07:12 joern Exp $
+# $Id: Event_RPC_Test.pm,v 1.2 2005/12/17 15:04:25 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -73,6 +73,21 @@ sub echo {
 	my $self = shift;
 	my (@params) = @_;
 	return @params;
+}
+
+sub get_cid {
+        my $self = shift;
+        my $connection = Event::RPC::Server->instance->get_active_connection;
+        my $cid = $connection->get_cid;
+        return $cid;
+}
+
+sub get_object_cnt {
+        my $self = shift;
+        my $connection = Event::RPC::Server->instance->get_active_connection;
+        my $client_oids = $connection->get_client_oids;
+        my $cnt = keys %{$client_oids};
+        return $cnt;
 }
 
 1;

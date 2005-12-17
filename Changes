@@ -1,78 +1,94 @@
-$Id: Changes,v 1.6 2005/08/28 18:30:53 joern Exp $
+$Id: Changes,v 1.7 2005/12/17 15:10:43 joern Exp $
 
 Revision history and release notes for Event::RPC:
 
+0.86 Sat Dec 17, 2005, joern
+    Note:
+    - SSL tests are disabled, since IO::Socket::SSL and/or
+      Net::SSLeay seem to be broken. You find more details
+      in the README.
+
+    Features:
+    - added Event::RPC::Server->get_active_connection
+    - documented Event::RPC::Connection->get_client_oids
+    - added Event::RPC::Connection->get_client_object
+
+    Bugfixes:
+    - Added missing documentation for Event::RPC::Client's
+      error_cb attribute, which was just mentioned in
+      the SYNPOSIS.
+
 0.85 Sun Aug 28, 2005, joern
-	Bugfixes:
-	- Make server more bullet proof: handle log connections
-	  even if no logger is set, but a log listener was started.
-	- Event::RPC::Server->new didn't recognize the
-	  'connection_hook' parameter.
-	- Try making the testsuite more stable with Win32.
+    Bugfixes:
+    - Make server more bullet proof: handle log connections
+      even if no logger is set, but a log listener was started.
+    - Event::RPC::Server->new didn't recognize the
+      'connection_hook' parameter.
+    - Try making the testsuite more stable with Win32.
 
 0.84 Mon Jul 25, 2005, joern
-	Bugfixes:
-	- Buffering for big incoming RPC requests (> 64KB) didn't
-	  work properly
+    Bugfixes:
+    - Buffering for big incoming RPC requests (> 64KB) didn't
+      work properly
 
 0.83 Fri Apr 15, 2005, joern
-	Features:
-	- Made more parts of the API public by documenting them.
-	- New server option "connection_hook" for accessing
-	  Event::RPC::Connection objects during connecting and
-	  disconnecting.
-	- New server option "auto_reload_modules" to control the
-	  server's auto reloading facility, which was activated
-	  by default up to now.
-	- New server option "host" to bind the listener to a
-	  specific address. Default is to bind to all addresses.
-	- Increased connect performance by reducing the number
-	  of messages exchanged between client and server.
-	- Client may request a subset of exported server classes.
-	  Default is still to import all classes exported by the
-	  server.
-	- Client checks Event::RPC version and used protocol version
-	  on connect and warns different software versions but dies
-	  on incompatible protocol versions. Naturally it's
-	  recommended to use the same Event::RPC version on server
-	  and client.
-	- Methods for getting client and server (after connecting)
-	  software and protocol version numbers.
-	
-	Bugfixes:
-	- Missed ReuseAddr on listener sockets.
-	- Made testsuite more robust
-	- Network logging clients could block the server by
-	  sending data to it.
-	- Renamed client option 'server' to 'host', which is more
-	  adequate. 'server' is still allowed but deprecated and
-	  using it triggers a warning.
+    Features:
+    - Made more parts of the API public by documenting them.
+    - New server option "connection_hook" for accessing
+      Event::RPC::Connection objects during connecting and
+      disconnecting.
+    - New server option "auto_reload_modules" to control the
+      server's auto reloading facility, which was activated
+      by default up to now.
+    - New server option "host" to bind the listener to a
+      specific address. Default is to bind to all addresses.
+    - Increased connect performance by reducing the number
+      of messages exchanged between client and server.
+    - Client may request a subset of exported server classes.
+      Default is still to import all classes exported by the
+      server.
+    - Client checks Event::RPC version and used protocol version
+      on connect and warns different software versions but dies
+      on incompatible protocol versions. Naturally it's
+      recommended to use the same Event::RPC version on server
+      and client.
+    - Methods for getting client and server (after connecting)
+      software and protocol version numbers.
+
+    Bugfixes:
+    - Missed ReuseAddr on listener sockets.
+    - Made testsuite more robust
+    - Network logging clients could block the server by
+      sending data to it.
+    - Renamed client option 'server' to 'host', which is more
+      adequate. 'server' is still allowed but deprecated and
+      using it triggers a warning.
 
 0.82 Sun Apr 10, 2005, joern
-	Notes:
-	- First public release. API is fairly stable.
-	
-	Features:
-	- User/password based authentication added.
-	- Full documentation added.
-	- Test suite added which covers all connection
-	  types and the most important features.
+    Notes:
+    - First public release. API is fairly stable.
+
+    Features:
+    - User/password based authentication added.
+    - Full documentation added.
+    - Test suite added which covers all connection
+      types and the most important features.
 
 0.81 Sun Mar 13, 2005, joern
-	Notes:
-	- Still an internal release, incomplete documentation, no
-	  test suite.
-	
-	Features:
-	- Support for SSL encryption added using IO::Socket::SSL.
-	- Event loop abstraction. Event::RPC now works with Event
-	  and Glib and can be easily extended for other event loop
-	  frameworks. Thanks to Rocco Caputo for the suggestion.
+    Notes:
+    - Still an internal release, incomplete documentation, no
+      test suite.
+
+    Features:
+    - Support for SSL encryption added using IO::Socket::SSL.
+    - Event loop abstraction. Event::RPC now works with Event
+      and Glib and can be easily extended for other event loop
+      frameworks. Thanks to Rocco Caputo for the suggestion.
 
 0.80 Sun Mar 13, 2005, joern
-	Notes:
-	- A non public release. Only announced on the perl-loop mailing
-	  list for the namespace request and to get comments. Module
-	  is fully working but API isn't documented yet very well.
-	  Security stuff (SSL encryption, some password authentication)
-	  is missing also a complete test suite.
+    Notes:
+    - A non public release. Only announced on the perl-loop mailing
+      list for the namespace request and to get comments. Module
+      is fully working but API isn't documented yet very well.
+      Security stuff (SSL encryption, some password authentication)
+      is missing also a complete test suite.

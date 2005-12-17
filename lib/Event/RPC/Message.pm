@@ -1,4 +1,4 @@
-# $Id: Message.pm,v 1.2 2005/07/25 15:45:35 joern Exp $
+# $Id: Message.pm,v 1.3 2005/12/17 15:07:00 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -50,8 +50,7 @@ sub read {
 		$DEBUG && print "DEBUG: going to read header...\n";
 		my $rc = sysread ($self->get_sock, $length_packed, 4);
 		$DEBUG && print "DEBUG: header read rc=$rc\n";
-		die "Can't read message header" if not defined $rc;
-		die "DISCONNECTED" if $rc == 0;
+		die "DISCONNECTED" if !(defined $rc) || $rc == 0;
 		$self->{length} = unpack("N", $length_packed);
 		$DEBUG && print "DEBUG: packet size=$self->{length}\n";
 		die "Incoming message too big"
@@ -152,3 +151,44 @@ sub write_blocked {
 
 1;
 
+__END__
+
+=head1 NAME
+
+Event::RPC::Message - Implementation of Event::RPC network protocol
+
+=head1 SYNOPSIS
+
+  # Internal module. No documented public interface.
+
+=head1 DESCRIPTION
+
+This module implements the network protocol of Event::RPC.
+Objects of this class are created internally by Event::RPC::Server
+and Event::RPC::Client and performs message passing over the
+network.
+
+=head1 AUTHORS
+
+  Jörn Reder <joern at zyn dot de>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2002-2005 by Jörn Reder.
+
+This library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2.1 of the
+License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307
+USA.
+
+=cut

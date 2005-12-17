@@ -12,7 +12,7 @@ sub get_server			{ shift->{server}			}
 sub get_classes			{ shift->{server}->{classes}		}
 sub get_loaded_classes		{ shift->{server}->{loaded_classes}	}
 sub get_objects			{ shift->{server}->{objects}		}
-sub get_client_objects		{ shift->{client_objects}		}
+sub get_client_oids		{ shift->{client_oids}		        }
 
 sub get_watcher			{ shift->{watcher}			}
 sub get_message			{ shift->{message}			}
@@ -26,7 +26,7 @@ sub set_auth_user		{ shift->{auth_user}		= $_[1]	}
 
 sub new {
 	my $class = shift;
-	my  ($server, $sock) = @_;
+	my ($server, $sock) = @_;
 
 	my $cid = ++$CONNECTION_ID;
 	
@@ -38,7 +38,7 @@ sub new {
 		auth_user		=> "",
 		watcher 		=> undef,
 		message 		=> undef,
-		client_objects		=> {},
+		client_oids		=> {},
 	}, $class;
 
 	if ( $sock ) {
@@ -62,15 +62,15 @@ sub new {
 sub disconnect {
 	my $self = shift;
 
-	close $self->get_sock;
 	$self->get_server->get_loop->del_io_watcher($self->get_watcher);
 	$self->set_watcher(undef);
+	close $self->get_sock;
 
 	my $server = $self->get_server;
 
 	$server->set_clients_connected ( $self->get_server->get_clients_connected - 1 );
 
-	foreach my $oid ( keys %{$self->get_client_objects} ) {
+	foreach my $oid ( keys %{$self->get_client_oids} ) {
 		$server->deregister_object($oid);
 	}
 
@@ -80,6 +80,16 @@ sub disconnect {
 	&$connection_hook($self, "disconnect") if $connection_hook;
 
 	1;
+}
+
+sub get_client_object {
+        my $self = shift;
+        my ($oid) = @_;
+        
+        croak "No object registered with oid '$oid'"
+            unless $self->get_client_objects->{$oid};
+
+        return $self->get_client_objects->{$oid};
 }
 
 sub log {
@@ -120,6 +130,8 @@ sub input {
 	return $self->disconnect
 		if $request eq "DISCONNECT\n" or
 		   $error =~ /DISCONNECTED/;
+
+        $server->set_active_connection($self);
 
 	my ($cmd, $rc);
 	$cmd = $request->{cmd} if not $error;
@@ -174,6 +186,8 @@ sub input {
 			msg => "Unknown request command '$cmd'",
 		};
 	}
+
+        $server->set_active_connection(undef);
 
 	$message->write($rc) and return;
 
@@ -262,7 +276,7 @@ sub create_new_object {
 
 	# register object
 	$self->get_server->register_object ($object, $class);
-	$self->get_client_objects->{"$object"} = 1;
+	$self->get_client_oids->{"$object"} = 1;
 
 	# log and return
 	$self->log (5,
@@ -400,7 +414,7 @@ sub execute_object_method {
 			# returns a single object
 			$self->log (4, "Method returns object: $rc");
 			$key = "$rc";
-			$self->get_client_objects->{$key} = 1;
+			$self->get_client_oids->{$key} = 1;
 			$self->get_server->register_object($rc, ref $rc);
 			$rc = $key;
 
@@ -414,7 +428,7 @@ sub execute_object_method {
 				if ( ref ($val) and ref ($val) !~ /ARRAY|HASH|SCALAR/ ) {
 					$self->log (4, "Method returns object lref: $val");
 					$key = "$val";
-					$self->get_client_objects->{$key} = 1;
+					$self->get_client_oids->{$key} = 1;
 					$self->get_server->register_object($val, ref $val);
 					$val = $key;
 				}
@@ -429,7 +443,7 @@ sub execute_object_method {
 				if ( ref ($val) and ref ($val) !~ /ARRAY|HASH|SCALAR/ ) {
 					$self->log (4, "Method returns object href: $val");
 					$key = "$val";
-					$self->get_client_objects->{$key} = 1;
+					$self->get_client_oids->{$key} = 1;
 					$self->get_server->register_object($val, ref $val);
 					$val = $key;
 				}
@@ -450,7 +464,7 @@ sub object_destroyed_on_client {
 
 	$self->log(5, "Object with oid=$request->{oid} destroyed on client");
 
-	delete $self->get_client_objects->{$request->{oid}};
+	delete $self->get_client_oids->{$request->{oid}};
 	$self->get_server->deregister_object($request->{oid});
 
 	return {
@@ -539,12 +553,17 @@ and then having some read access on them.
       $rpc_server, $client_socket
   );
 
+As well you can get the currently active connection from your
+Event::RPC::Server object:
+
+  my $server     = Event::RPC::Server->instance;
+  my $connection = $server->get_active_connection;
+
 =head1 DESCRIPTION
 
 Objects of this class represents a connection from an Event::RPC::Client
-to an Event::RPC::Server instance.
-
-The whole Client/Server protocol is implemented here.
+to an Event::RPC::Server instance. They live inside the server and
+the whole Client/Server protocol is implemented here.
 
 =head1 READ ONLY ATTRIBUTES
 
@@ -571,6 +590,20 @@ resp. whether the client passed correct credentials.
 
 This is the name of the user who was authenticated successfully for
 this connection.
+
+=item B<client_oids>
+
+This is a hash reference of object id's which are in use by the client of
+this connection. Keys are the object ids, value is always 1.
+You can get the corresponding objects by using the
+
+  $connection->get_client_object($oid)
+
+method.
+
+Don't change anything in this hash, in particular don't delete or add
+entries. Event::RPC does all the necessary garbage collection transparently,
+no need to mess with that.
 
 =back
 
