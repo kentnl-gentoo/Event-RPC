@@ -1,6 +1,6 @@
 package Event::RPC;
 
-$VERSION  = "0.86";
+$VERSION  = "0.87";
 $PROTOCOL = "1.00";
 
 sub crypt {
@@ -59,20 +59,24 @@ For details on implementing servers and clients please refer to the man pages of
 
 =head1 REQUIREMENTS
 
-Event::RPC needs either one of the following modules:
+Event::RPC needs either one of the following modules on the server
+(they're not necessary on the client):
 
   Event
   Glib
 
-for event handling resp. mainloop implementation.
-
+They're needed for event handling resp. mainloop implementation.
 If you like to use SSL encryption you need to install
 
   IO::Socket::SSL
 
-which requires
+As well Event::RPC makes heavy use of the
 
-  Net::SSLeay
+  Storable
+
+module, which is part of the Perl standard library. It's important
+that both client and server use B<exactly the same version of the Storable
+module>! Otherwise Event::RPC client/server communication will fail badly.
 
 =head1 INSTALLATION
 
@@ -83,91 +87,17 @@ is just:
   make test
   make install
 
-=head1 COMPLETE EXAMPLE
+=head1 EXAMPLES
 
-  Server:
-  ==================================================
+The tarball includes an examples/ directory which contains two
+programs:
 
-  use strict;
-  use Event::RPC::Server;
+  server.pl
+  client.pl
 
-  main: {
-      #-- Create a Server instance and declare the
-      #-- exported interface
-      my $server = Event::RPC::Server->new (
-        name    => "test daemon",
-        port    => 5555,
-        classes => {
-          'Event::RPC::Test' => {
-            new       => '_constructor', # Class constructor
-            set_data  => 1,              # and 'normal' methods...
-            get_data  => 1,
-            hello     => 1,
-          },
-        },
-      );
-
-      #-- Start the server resp. the Event loop.
-      $server->start;
-  }
-
-  #-- A simple test class
-
-  package Event::RPC::Test;
-
-  sub get_data  { shift->{data}         }
-  sub set_data  { shift->{data} = $_[1] }
-
-  sub new {
-      my $class = shift;
-      my %par = @_;
-      my ($data) = $par{'data'};
-
-      my $self = bless { data => $data };
-
-      return $self;
-  }
-
-  sub hello {
-      my $self = shift;
-      return "I have this data: '".$self->get_data."'";
-  }
-
-  Client:
-  ==================================================
-
-  use strict;
-
-  use Event::RPC::Client;
-
-  main: {
-      #-- This connects to the server, requests the exported
-      #-- interfaces and establishes proxy methods
-      #-- in the correspondent packages.
-      my $client = Event::RPC::Client->new (
-        server   => "localhost",
-        port     => 5555,
-        error_cb => sub { print "An RPC error occured\n"; exit },
-      );
-
-      #-- Connect the client to the server
-      $client->connect;
-
-      #-- From now on the call to Event::RPC::Test->new is
-      #-- handled transparently by Event::RPC::Client
-      my $object = Event::RPC::Test->new (
-              data => "some test data" x 5
-      );
-
-      #-- and method calls as well...
-      print "hello=".$object->hello,"\n";
-      $object->set_data ("changed data");
-      print "data=".$object->get_data."\n";
-
-      #-- disconnection is handled by the destructor of $client 
-      #-- or disconnect explictly
-      $client->disconnect;
-  }
+Just execute them with --help to get the usage. They do some very
+simple communication but are good to test your setup, in particular
+in a mixed environment.
 
 =head1 LIMITATIONS
 

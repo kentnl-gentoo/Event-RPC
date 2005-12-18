@@ -1,5 +1,15 @@
 #!/usr/bin/perl -w
 
+# $Id: client.pl,v 1.4 2005/12/18 14:01:13 joern Exp $
+
+#-----------------------------------------------------------------------
+# Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
+# All Rights Reserved. See file COPYRIGHT for details.
+# 
+# This module is part of Event::RPC, which is free software; you can
+# redistribute it and/or modify it under the same terms as Perl itself.
+#-----------------------------------------------------------------------
+
 use strict;
 
 use lib 'lib';
@@ -19,6 +29,7 @@ Description:
 Options:
   -s             Use SSL encryption
   -a user:pass   Pass this authorization data to the server
+  -h host        Server hostname. Default: localhost
 
 __EOU
 
@@ -31,7 +42,7 @@ sub HELP_MESSAGE {
 
 main: {
     my %opts;
-    my $opts_ok = getopts('l:a:s',\%opts);
+    my $opts_ok = getopts('h:l:a:s',\%opts);
    
     HELP_MESSAGE() unless $opts_ok;
 
@@ -47,12 +58,15 @@ main: {
       );
     }
 
+    #-- Host parameter
+    my $host = $opts{h} || 'localhost';
+
     #-- This connects to the server, requests the exported
     #-- interfaces and establishes correspondent proxy methods
     #-- in the correspondent packages.
     my $client;
     $client = Event::RPC::Client->new (
-      host     => "localhost",
+      host     => $host,
       port     => 5555,
       ssl      => $ssl,
       %auth_args,
@@ -63,25 +77,32 @@ main: {
 	$client->disconnect if $client;
 	exit
       },
-      classes => [ "Test_class", "Foo" ],
+      classes => [ "Test_class" ],
     );
 
     $client->connect;
 
-    print "Connected to localhost:5555\n";
+    print "\nConnected to localhost:5555\n\n";
     print "Server version:  ".$client->get_server_version,"\n";
     print "Server protocol: ".$client->get_server_protocol,"\n\n";
 
     #-- So the call to Event::RPC::Test->new is handled transparently
     #-- by Event::RPC::Client
+    print "** Create object on server\n";
     my $object = Test_class->new (
-	    data => "Some test data. " x 6
+	    data => "Initial data",
     );
+    print "=> Object created with data: '".$object->get_data."'\n\n";
 
     #-- and methods calls as well...
-    print "hello=".$object->hello,"\n";
-    $object->set_data ("changed data");
-    print "data=".$object->get_data."\n";
+    print "** Say hello to server.\n";
+    print "=> Server returned: >>".$object->hello,"<<\n";
 
-    #-- disconnection is handled by the destructor of $client	
+    print "\n** Update object data.\n";
+    $object->set_data ("Yes, updating works");
+    print "=> Retrieve data from server: '".$object->get_data."'\n";
+
+    print "\n** Disconnecting\n\n";
+    $client->disconnect;
+
 }

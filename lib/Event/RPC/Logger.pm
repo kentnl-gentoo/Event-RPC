@@ -1,4 +1,4 @@
-# $Id: Logger.pm,v 1.2 2005/04/15 21:13:35 joern Exp $
+# $Id: Logger.pm,v 1.3 2005/12/18 13:11:16 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -130,7 +130,7 @@ Event::RPC::Logger - Logging facility for Event::RPC
 =head1 SYNOPSIS
 
   use Event::RPC::Server;
-  use Event::RPC::Loop::Event;
+  use Event::RPC::Logger;
   
   my $server = Event::RPC::Server->new (
       ...

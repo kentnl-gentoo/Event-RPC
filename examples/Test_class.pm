@@ -1,4 +1,4 @@
-# $Id: Test_class.pm,v 1.1 2005/04/15 21:10:20 joern Exp $
+# $Id: Test_class.pm,v 1.2 2005/12/18 13:10:14 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -30,7 +30,7 @@ sub new {
 sub hello {
 	my $self = shift;
 	
-	return "I hold this data: '".$self->get_data."'";
+	return "Hello again. My data is: '".$self->get_data."'";
 }
 
 sub quit {

@@ -1,4 +1,4 @@
-# $Id: Server.pm,v 1.4 2005/12/17 15:05:31 joern Exp $
+# $Id: Server.pm,v 1.7 2005/12/18 13:53:57 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -39,6 +39,7 @@ sub get_ssl_cert_file		{ shift->{ssl_cert_file}		}
 sub get_ssl_passwd_cb		{ shift->{ssl_passwd_cb}		}
 sub get_auth_required		{ shift->{auth_required}		}
 sub get_auth_passwd_href	{ shift->{auth_passwd_href}		}
+sub get_auth_module             { shift->{auth_module}                  }
 sub get_listeners_started	{ shift->{listeners_started}		}
 sub get_connection_hook		{ shift->{connection_hook}		}
 sub get_auto_reload_modules	{ shift->{auto_reload_modules}		}
@@ -63,6 +64,7 @@ sub set_ssl_cert_file		{ shift->{ssl_cert_file}	= $_[1]	}
 sub set_ssl_passwd_cb		{ shift->{ssl_passwd_cb}	= $_[1]	}
 sub set_auth_required		{ shift->{auth_required}	= $_[1]	}
 sub set_auth_passwd_href	{ shift->{auth_passwd_href}	= $_[1]	}
+sub set_auth_module             { shift->{auth_module}          = $_[1] }
 sub set_listeners_started	{ shift->{listeners_started}	= $_[1]	}
 sub set_connection_hook		{ shift->{connection_hook}	= $_[1]	}
 sub set_auto_reload_modules	{ shift->{auto_reload_modules}	= $_[1]	}
@@ -78,8 +80,8 @@ sub new {
 	@par{'host','port','classes','name','logger','start_log_listener'};
 	my  ($ssl, $ssl_key_file, $ssl_cert_file, $ssl_passwd_cb) =
 	@par{'ssl','ssl_key_file','ssl_cert_file','ssl_passwd_cb'};
-	my  ($auth_required, $auth_passwd_href, $loop) =
-	@par{'auth_required','auth_passwd_href','loop'};
+	my  ($auth_required, $auth_passwd_href, $auth_module, $loop) =
+	@par{'auth_required','auth_passwd_href','auth_module','loop'};
 	my  ($connection_hook, $auto_reload_modules) =
 	@par{'connection_hook','auto_reload_modules'};
 
@@ -117,6 +119,7 @@ sub new {
 
 		auth_required		=> $auth_required,
 		auth_passwd_href	=> $auth_passwd_href,
+                auth_module             => $auth_module,
 
 		auto_reload_modules	=> $auto_reload_modules,
 		connection_hook		=> $connection_hook,
@@ -228,11 +231,31 @@ sub setup_listeners {
 	1;
 }
 
+sub setup_auth_module {
+        my $self = shift;
+        
+        #-- Exit if no auth is required or setup already
+        return if not $self->get_auth_required;
+        return if     $self->get_auth_module;
+        
+        #-- Default to Event::RPC::AuthPasswdHash
+        require Event::RPC::AuthPasswdHash;
+
+        #-- Setup an instance
+        my $passwd_href = $self->get_auth_passwd_href;
+        my $auth_module = Event::RPC::AuthPasswdHash->new ($passwd_href);
+        $self->set_auth_module($auth_module);
+        
+        1;
+}
+
 sub start {
 	my $self = shift;
 
 	$self->setup_listeners
 		unless $self->get_listeners_started;
+
+        $self->setup_auth_module;
 
 	my $loop = $self->get_loop;
 
@@ -407,6 +430,7 @@ Event::RPC::Server - Simple API for event driven RPC servers
 
       auth_required       => 1,
       auth_passwd_href    => { $user => Event::RPC->crypt($user,$pass) },
+      auth_module         => Your::Own::Auth::Module->new(...),
 
       loop                => Event::RPC::Loop::Event->new(),
       
@@ -571,13 +595,19 @@ insecure!
 
 =head2 AUTHENTICATION OPTIONS
 
-SSL encryptiong is fine, now it's really hard for an attacker to
+SSL encryption is fine, now it's really hard for an attacker to
 listen or modify your network communication. But without any further
 configuration any user on your network is able to connect to your
 server. To prevent this users resp. connections to your server
 needs to be authenticated somehow.
 
-Event::RPC has a simple user/password based model for this. For now
+Since version 0.87 Event::RPC has an API to delegate authentication
+tasks to a module, which can be implemented outside Event::RPC.
+To be compatible with prior releases it ships the module
+Event::RPC::AuthPasswdHash which implements the old behaviour
+transparently.
+
+This default implementation is a simple user/password based model. For now
 this controls just the right to connect to your server, so knowing
 one valid user/password pair is enough to access all exported methods
 of your server. Probably a more differentiated model will be added later
@@ -595,9 +625,13 @@ until he passes a valid user/password pair.
 
 =item B<auth_passwd_href>
 
-This is a hash of valid user/password pairs. The password stored here
-needs to be encrypted using Perl's crypt() function, using the username
-as the salt.
+If you like to use the builtin Event::RPC::AuthPasswdHash module
+simply set this attribute. If you decide to use B<auth_module>
+(explained beyound) it's not necessary.
+
+B<auth_passwd_href> is a hash of valid user/password pairs. The password
+stored here needs to be encrypted using Perl's crypt() function, using
+the username as the salt.
 
 Event::RPC has a convenience function for generating such a crypted
 password, although it's currently just a 1:1 wrapper around Perl's
@@ -613,6 +647,18 @@ two users:
     fred => Event::RPC->crypt("fred", $freds_password),
     nick => Event::RPC->crypt("nick", $nicks_password),
   },
+
+=item B<auth_module>
+
+If you like to implement a more complex authentication method yourself
+you may set the B<auth_module> attribute to an instance of your class.
+For now your implementation just needs to have this method:
+
+  $auth_module->check_credentials($user, $pass)
+
+Aware that $pass is encrypted as explained above, so your original
+password needs to by crypted using Event::RPC->crypt as well, at
+least for the comparison itself.
 
 =back
 
@@ -754,8 +800,9 @@ Returns the number of currently connected logging clients.
 =item $rpc_server->B<get_active_connection>
 
 This returns the currently active Event::RPC::Connection object
-representing the connection resp. the client which requested
-method invocation.
+representing the connection resp. the client which currently 
+requests method invocation. This is undef if no client call
+is active.
 
 =back
 

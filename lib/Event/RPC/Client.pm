@@ -1,4 +1,4 @@
-# $Id: Client.pm,v 1.4 2005/12/17 15:09:59 joern Exp $
+# $Id: Client.pm,v 1.5 2005/12/18 13:47:08 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -15,7 +15,7 @@ use Event::RPC::Message;
 
 use Carp;
 use strict;
-use IO::Socket;
+use IO::Socket::INET;
 
 sub get_host			{ shift->{host}				}
 sub get_port			{ shift->{port}				}

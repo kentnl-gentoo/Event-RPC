@@ -1,5 +1,15 @@
 #!/usr/bin/perl -w
 
+# $Id: server.pl,v 1.3 2005/12/18 14:01:13 joern Exp $
+
+#-----------------------------------------------------------------------
+# Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
+# All Rights Reserved. See file COPYRIGHT for details.
+# 
+# This module is part of Event::RPC, which is free software; you can
+# redistribute it and/or modify it under the same terms as Perl itself.
+#-----------------------------------------------------------------------
+
 use strict;
 
 use strict;
@@ -21,6 +31,7 @@ Options:
   -l log-level       Logging level. Default: 4
   -s                 Use SSL encryption
   -a user:pass       Require authorization
+  -h host            Bind to this host interface. Default: localhost
   -L loop-module     Event loop module to use.
                      Default: Event::RPC::Loop::Event
 
@@ -35,7 +46,7 @@ sub HELP_MESSAGE {
 
 main: {
     my %opts;
-    my $opts_ok = getopts('L:l:a:s',\%opts);
+    my $opts_ok = getopts('h:L:l:a:s',\%opts);
    
     HELP_MESSAGE() unless $opts_ok;
 
@@ -81,11 +92,14 @@ main: {
 	    $loop = $loop_module->new();
     }
     
+    #-- Host parameter
+    my $host = $opts{h} || "localhost";
+    
     #-- Create a Server instance and declare the
     #-- exported interface
     my $server = Event::RPC::Server->new (
       name                => "test daemon",
-      host		  => "localhost",
+      host		  => $host,
       port                => 5555,
       logger              => $logger,
       loop                => $loop,

@@ -1,7 +1,7 @@
 package Event::RPC::Connection;
 
+use strict;
 use Carp;
-use Socket;
 
 my $CONNECTION_ID;
 
@@ -212,10 +212,16 @@ sub authorize_user {
 	my $user = $request->{user};
 	my $pass = $request->{pass};
 	
-	my $auth_passwd_href = $self->get_server->get_auth_passwd_href;
-	my $server_pass = $auth_passwd_href->{$user} || '';
-
-	if ( $server_pass eq $pass ) {
+        my $auth_module = $self->get_server->get_auth_module;
+        
+        return {
+            ok  => 1,
+            msg => "Not authorization required",
+        } unless $auth_module;
+        
+        my $ok = $auth_module->check_credentials ($user, $pass);
+        
+	if ( $ok ) {
 		$self->set_auth_user($user);
 		$self->set_is_authenticated(1);
 		$self->log("User '$user' successfully authorized");

@@ -1,13 +1,26 @@
-$Id: Changes,v 1.7 2005/12/17 15:10:43 joern Exp $
+$Id: Changes,v 1.9 2005/12/18 13:48:45 joern Exp $
 
 Revision history and release notes for Event::RPC:
 
-0.86 Sat Dec 17, 2005, joern
-    Note:
-    - SSL tests are disabled, since IO::Socket::SSL and/or
-      Net::SSLeay seem to be broken. You find more details
-      in the README.
+0.87 Sun Dec 18, 2005, joern
+    Features:
+    - Delegation of authentication resp. user/password check
+      to an external module via Event::RPC::Server attribute
+      "auth_module". Old passwd hash based model is implemented
+      in Event::RPC::AuthPasswdHash.
+    - Fixed a typo in Event::RPC::Looger manpage. Thanks to
+      Sean <soso AT kol.co.nz> for the report.
+    - Cleaned up examples/: server.pl and client.pl now both
+      accept -h option for binding/connecting to a specific
+      host, not just localhost.
+    - Makefile.PL tuning: add detected optional modules to
+      PREREQ_PM to get their version numbers added to CPAN
+      Testers reports.
 
+    Bugfixes:
+    - ChangeLog entry 0.86 was wrong regarding the SSL stuff.
+
+0.86 Sat Dec 17, 2005, joern
     Features:
     - added Event::RPC::Server->get_active_connection
     - documented Event::RPC::Connection->get_client_oids
@@ -17,6 +30,9 @@ Revision history and release notes for Event::RPC:
     - Added missing documentation for Event::RPC::Client's
       error_cb attribute, which was just mentioned in
       the SYNPOSIS.
+    - Fixed an incompatability with IO::Socket::SSL 0.97,
+      which doesn't return different sysread() states for
+      error and eof anymore which confused Event::RPC.
 
 0.85 Sun Aug 28, 2005, joern
     Bugfixes:

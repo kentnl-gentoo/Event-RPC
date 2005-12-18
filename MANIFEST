@@ -4,6 +4,7 @@ Makefile.PL
 META.yml
 README
 lib/Event/RPC.pm
+lib/Event/RPC/AuthPasswdHash.pm
 lib/Event/RPC/Client.pm
 lib/Event/RPC/Logger.pm
 lib/Event/RPC/Loop.pm
