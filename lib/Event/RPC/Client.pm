@@ -1,4 +1,4 @@
-# $Id: Client.pm,v 1.5 2005/12/18 13:47:08 joern Exp $
+# $Id: Client.pm,v 1.6 2005/12/24 13:44:53 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -196,7 +196,7 @@ sub check_version {
 	$self->set_server_protocol($rc->{protocol});
 	
 	if ( $rc->{version} ne $self->get_client_version ) {
-		warn "WARNING: Server version $rc->{version} != ".
+		warn "Event::RPC warning: server version $rc->{version} != ".
 		     "client version ".$self->get_client_version;
 	}
 	

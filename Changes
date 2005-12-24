@@ -1,6 +1,12 @@
-$Id: Changes,v 1.9 2005/12/18 13:48:45 joern Exp $
+$Id: Changes,v 1.10 2005/12/24 13:49:39 joern Exp $
 
 Revision history and release notes for Event::RPC:
+
+0.88 Sat Dec 24, 2005, joern
+    Bugfixes:
+    - Use Storable::nfreeze() to pack network messages, so
+      Event::RPC works with mixed endian architectures
+      as well. Patch by Rolf Grossmann <rg AT PROGTECH.net>.
 
 0.87 Sun Dec 18, 2005, joern
     Features:

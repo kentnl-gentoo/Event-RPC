@@ -1,4 +1,4 @@
-# $Id: Message.pm,v 1.3 2005/12/17 15:07:00 joern Exp $
+# $Id: Message.pm,v 1.4 2005/12/24 13:46:32 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -106,7 +106,7 @@ sub write {
 	$DEBUG && print "DEBUG: going to write...\n";
 
 	if ( not defined $self->{buffer} ) {
-		my $packed = Storable::freeze ($data);
+		my $packed = Storable::nfreeze ($data);
 		$self->{buffer} = pack("N", length($packed)).$packed;
 		$self->{length} = length($self->{buffer});
 		$self->{written} = 0;
