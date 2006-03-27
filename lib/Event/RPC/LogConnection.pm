@@ -91,7 +91,7 @@ internal module and has no public interface.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2002-2005 by Jörn Reder.
+Copyright 2002-2006 by Jörn Reder.
 
 This library is free software; you can redistribute it and/or modify
 it under the terms of the GNU Library General Public License as

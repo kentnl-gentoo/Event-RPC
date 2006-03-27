@@ -1,7 +1,7 @@
-# $Id: Event.pm,v 1.1 2005/04/10 21:07:12 joern Exp $
+# $Id: Event.pm,v 1.2 2006/02/27 14:33:37 joern Exp $
 
 #-----------------------------------------------------------------------
-# Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
+# Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
 # All Rights Reserved. See file COPYRIGHT for details.
 # 
 # This module is part of Event::RPC, which is free software; you can
@@ -114,7 +114,7 @@ Event::RPC::Loop for details.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2002-2005 by Jörn Reder.
+Copyright 2002-2006 by Jörn Reder.
 
 This library is free software; you can redistribute it and/or modify
 it under the terms of the GNU Library General Public License as

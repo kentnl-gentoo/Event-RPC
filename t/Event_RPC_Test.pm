@@ -1,4 +1,4 @@
-# $Id: Event_RPC_Test.pm,v 1.2 2005/12/17 15:04:25 joern Exp $
+# $Id: Event_RPC_Test.pm,v 1.3 2006/02/24 14:28:44 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -88,6 +88,10 @@ sub get_object_cnt {
         my $client_oids = $connection->get_client_oids;
         my $cnt = keys %{$client_oids};
         return $cnt;
+}
+
+sub get_undef_object {
+        return undef;
 }
 
 1;

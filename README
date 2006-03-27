@@ -77,6 +77,11 @@ REQUIREMENTS
     badly.
 
 INSTALLATION
+    You get the latest installation tarballs and online documentation at
+    this location:
+
+      http://www.exit1.org/Event-RPC/
+
     If your system meets the requirements mentioned above, installation is
     just:
 
@@ -137,19 +142,11 @@ LIMITATIONS
     inside one array or hash ref is not allowed. They must be passed as a
     direkt argument of the method subroutine.
 
-  Using the same class locally and remotely is impossible
-    It's not possible to create resp. use local objects from a class which
-    was exported by a server the client is connected to (and vice versa).
-
-    Event::RPC::Client registers all exported methods in the local namespace
-    of the correspondent classes, so having the same method locally and
-    remotely can't be done, because the methods would override each other.
-
 AUTHORS
       Jörn Reder <joern at zyn dot de>
 
 COPYRIGHT AND LICENSE
-    Copyright 2002-2005 by Jörn Reder.
+    Copyright 2002-2006 by Jörn Reder.
 
     This library is free software; you can redistribute it and/or modify it
     under the terms of the GNU Library General Public License as published

@@ -1,7 +1,7 @@
-# $Id: Server.pm,v 1.7 2005/12/18 13:53:57 joern Exp $
+# $Id: Server.pm,v 1.9 2006/02/27 14:33:37 joern Exp $
 
 #-----------------------------------------------------------------------
-# Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
+# Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
 # All Rights Reserved. See file COPYRIGHT for details.
 # 
 # This module is part of Event::RPC, which is free software; you can
@@ -331,7 +331,10 @@ sub remove_object {
 	
 	my $objects = $self->get_objects;
 
-	die "Object $object not registered" if not $objects->{"$object"};
+        if ( not $objects->{"$object"} ) {
+    	    warn "Object $object not registered";
+            return;
+        }
 
 	delete $objects->{"$object"};
 	
@@ -369,8 +372,11 @@ sub deregister_object {
 	
 	my $objects = $self->get_objects;
 
-	die "Object $object not registered" if not $objects->{"$object"};
-	
+        if ( not $objects->{"$object"} ) {
+    	    warn "Object $object not registered";
+            return;
+        }
+
 	my $refcount = --$objects->{"$object"}->{refcount};
 
 	$self->log(5, "Object '$object' deregistered. Refcount=$refcount");
@@ -812,7 +818,7 @@ is active.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2002-2005 by Jörn Reder.
+Copyright 2002-2006 by Jörn Reder.
 
 This library is free software; you can redistribute it and/or modify
 it under the terms of the GNU Library General Public License as

@@ -1,6 +1,27 @@
-$Id: Changes,v 1.10 2005/12/24 13:49:39 joern Exp $
+$Id: Changes,v 1.13 2006/03/27 19:55:16 joern Exp $
 
 Revision history and release notes for Event::RPC:
+
+0.89 Mon Mar 27, 2006, joern
+    Features:
+    - New class_map attribute for Event::RPC::Client to be
+      able to use classes locally which are imported from the
+      server as well, by giving the server classes a different
+      name on the client.
+    - Turn execptions of unregistered object access into
+      warnings, which makes client / server communication
+      more robust and debugging easier.
+
+    Bugfixes:
+    - Fixed crashing when a method declared as an object
+      returner returned undef, which should be absolutely
+      legal.
+    - Fixed client side exceptions if server connection is
+      unexpectedly interrupted during a remote method call.
+    - Exceptions are now stringified before send to the
+      client, otherwise Storable may complain on exception
+      objects which can't be freezed e.g. due to embedded
+      code refs.
 
 0.88 Sat Dec 24, 2005, joern
     Bugfixes:

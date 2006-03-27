@@ -1,6 +1,6 @@
 package Event::RPC;
 
-$VERSION  = "0.88";
+$VERSION  = "0.89";
 $PROTOCOL = "1.00";
 
 sub crypt {
@@ -80,6 +80,11 @@ module>! Otherwise Event::RPC client/server communication will fail badly.
 
 =head1 INSTALLATION
 
+You get the latest installation tarballs and online documentation
+at this location:
+
+  http://www.exit1.org/Event-RPC/
+
 If your system meets the requirements mentioned above, installation
 is just:
 
@@ -146,24 +151,13 @@ Object receiving parameters are more restrictive,
 since even hiding them inside one array or hash ref is not allowed.
 They must be passed as a direkt argument of the method subroutine.
 
-=head2 Using the same class locally and remotely is impossible
-
-It's not possible to create resp. use local objects from a
-class which was exported by a server the client is connected
-to (and vice versa).
-
-Event::RPC::Client registers all exported methods in the local
-namespace of the correspondent classes, so having the same method
-locally and remotely can't be done, because the methods would
-override each other.
-
 =head1 AUTHORS
 
   Jörn Reder <joern at zyn dot de>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2002-2005 by Jörn Reder.
+Copyright 2002-2006 by Jörn Reder.
 
 This library is free software; you can redistribute it and/or modify
 it under the terms of the GNU Library General Public License as

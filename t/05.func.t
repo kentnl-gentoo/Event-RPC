@@ -9,7 +9,7 @@ if ( not $depend_modules ) {
 	plan skip_all => "Neither Event nor Glib installed";
 }
 
-plan tests => 15;
+plan tests => 16;
 
 my $PORT = 27811;
 
@@ -92,6 +92,9 @@ ok ($object->get_cid == 1, "access connection object");
 
 # get client object cnt via connection
 ok ($object->get_object_cnt == $object_cnt, "client object cnt via connection");
+
+# check undef object returner
+ok (!defined $object->get_undef_object, "get undef from an object returner");
 
 # disconnect client
 ok ($client->disconnect, "client disconnected");

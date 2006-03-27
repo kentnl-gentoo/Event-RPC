@@ -1,9 +1,9 @@
-# $Id: Client.pm,v 1.6 2005/12/24 13:44:53 joern Exp $
+# $Id: Client.pm,v 1.11 2006/03/27 19:52:45 joern Exp $
 
 #-----------------------------------------------------------------------
-# Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
+# Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
 # All Rights Reserved. See file COPYRIGHT for details.
-# 
+#
 # This module is part of Event::RPC, which is free software; you can
 # redistribute it and/or modify it under the same terms as Perl itself.
 #-----------------------------------------------------------------------
@@ -17,378 +17,395 @@ use Carp;
 use strict;
 use IO::Socket::INET;
 
-sub get_host			{ shift->{host}				}
-sub get_port			{ shift->{port}				}
-sub get_sock			{ shift->{sock}				}
-sub get_classes			{ shift->{classes}			}
-sub get_loaded_classes		{ shift->{loaded_classes}		}
-sub get_error_cb		{ shift->{error_cb}			}
-sub get_ssl			{ shift->{ssl}				}
-sub get_auth_user		{ shift->{auth_user}			}
-sub get_auth_pass		{ shift->{auth_pass}			}
-sub get_connected		{ shift->{connected}			}
-sub get_server			{ shift->{server}			}
-sub get_server_version		{ shift->{server_version}		}
-sub get_server_protocol		{ shift->{server_protocol}		}
-sub get_client_version		{ $Event::RPC::VERSION			}
-sub get_client_protocol		{ $Event::RPC::PROTOCOL			}
+sub get_client_version          { $Event::RPC::VERSION                  }
+sub get_client_protocol         { $Event::RPC::PROTOCOL                 }
 
-sub set_host			{ shift->{host}			= $_[1]	}
-sub set_port			{ shift->{port}			= $_[1]	}
-sub set_sock			{ shift->{sock}			= $_[1]	}
-sub set_classes			{ shift->{classes}		= $_[1]	}
-sub set_loaded_classes		{ shift->{loaded_classes}	= $_[1]	}
-sub set_error_cb		{ shift->{error_cb}		= $_[1]	}
-sub set_ssl			{ shift->{ssl}			= $_[1]	}
-sub set_auth_user		{ shift->{auth_user}		= $_[1]	}
-sub set_auth_pass		{ shift->{auth_pass}		= $_[1]	}
-sub set_connected		{ shift->{connected}		= $_[1]	}
-sub set_server			{ shift->{server}		= $_[1]	}
-sub set_server_version		{ shift->{server_version}	= $_[1]	}
-sub set_server_protocol		{ shift->{server_protocol}	= $_[1]	}
+sub get_host                    { shift->{host}                         }
+sub get_port                    { shift->{port}                         }
+sub get_sock                    { shift->{sock}                         }
+sub get_classes                 { shift->{classes}                      }
+sub get_class_map               { shift->{class_map}                    }
+sub get_loaded_classes          { shift->{loaded_classes}               }
+sub get_error_cb                { shift->{error_cb}                     }
+sub get_ssl                     { shift->{ssl}                          }
+sub get_auth_user               { shift->{auth_user}                    }
+sub get_auth_pass               { shift->{auth_pass}                    }
+sub get_connected               { shift->{connected}                    }
+sub get_server                  { shift->{server}                       }
+sub get_server_version          { shift->{server_version}               }
+sub get_server_protocol         { shift->{server_protocol}              }
+
+sub set_host                    { shift->{host}                 = $_[1] }
+sub set_port                    { shift->{port}                 = $_[1] }
+sub set_sock                    { shift->{sock}                 = $_[1] }
+sub set_classes                 { shift->{classes}              = $_[1] }
+sub set_class_map               { shift->{class_map}            = $_[1] }
+sub set_loaded_classes          { shift->{loaded_classes}       = $_[1] }
+sub set_error_cb                { shift->{error_cb}             = $_[1] }
+sub set_ssl                     { shift->{ssl}                  = $_[1] }
+sub set_auth_user               { shift->{auth_user}            = $_[1] }
+sub set_auth_pass               { shift->{auth_pass}            = $_[1] }
+sub set_connected               { shift->{connected}            = $_[1] }
+sub set_server                  { shift->{server}               = $_[1] }
+sub set_server_version          { shift->{server_version}       = $_[1] }
+sub set_server_protocol         { shift->{server_protocol}      = $_[1] }
 
 sub new {
-	my $class = shift;
-	my %par = @_;
-	my  ($server, $host, $port, $classes, $error_cb) =
-	@par{'server','host','port','classes','error_cb'};
-	my  ($ssl, $auth_user, $auth_pass) =
-	@par{'ssl','auth_user','auth_pass'};
- 
- 	$server ||= '';
-	$host   ||= '';
- 
-	if ( $server ne '' and $host eq '' ) {
-		warn "Option 'server' is deprecated. Use 'host' instead.";
-		$host = $server;
-	}
-	
-	my $self = bless {
-		host		=> $server,
-		server	        => $host,
-		port  	        => $port,
-		classes		=> $classes,
-		ssl		=> $ssl,
-		auth_user	=> $auth_user,
-		auth_pass	=> $auth_pass,
-		error_cb        => $error_cb,
-		loaded_classes  => {},
-		connected       => 0,
-	}, $class;
+    my $class = shift;
+    my %par   = @_;
+    my  ($server, $host, $port, $classes, $class_map, $error_cb) =
+    @par{'server','host','port','classes','class_map','error_cb'};
+    my  ($ssl, $auth_user, $auth_pass) =
+    @par{'ssl','auth_user','auth_pass'};
 
-	return $self;
+    $server ||= '';
+    $host   ||= '';
+
+    if ( $server ne '' and $host eq '' ) {
+        warn "Option 'server' is deprecated. Use 'host' instead.";
+        $host = $server;
+    }
+
+    my $self = bless {
+        host           => $server,
+        server         => $host,
+        port           => $port,
+        classes        => $classes,
+        class_map      => $class_map,
+        ssl            => $ssl,
+        auth_user      => $auth_user,
+        auth_pass      => $auth_pass,
+        error_cb       => $error_cb,
+        loaded_classes => {},
+        connected      => 0,
+    }, $class;
+
+    return $self;
 }
 
 sub connect {
-	my $self = shift;
-	
-	croak "Client is already connected" if $self->get_connected;
+    my $self = shift;
 
-	my $ssl    = $self->get_ssl;
-	my $server = $self->get_server;
-	my $port   = $self->get_port;
+    croak "Client is already connected" if $self->get_connected;
 
-	if ( $ssl ) {
-		eval { require IO::Socket::SSL };
-		croak "SSL requested, but IO::Socket::SSL not installed" if $@;
-	}
-	
-	my $sock;
-	if ( $ssl ) {
-		$sock = IO::Socket::SSL->new(
-			Proto     => 'tcp',
-        		PeerPort  => $port,
-        		PeerAddr  => $server,
-			Type      => SOCK_STREAM
-		) or croak "Can't open SSL connection to $server:$port: $IO::Socket::SSL::ERROR";
-	} else {
-		$sock = IO::Socket::INET->new(
-			Proto     => 'tcp',
-        		PeerPort  => $port,
-        		PeerAddr  => $server,
-			Type      => SOCK_STREAM
-		) or croak "Can't open connection to $server:$port - $!";
-	}
+    my $ssl    = $self->get_ssl;
+    my $server = $self->get_server;
+    my $port   = $self->get_port;
 
-	$sock->autoflush(1);
+    if ($ssl) {
+        eval { require IO::Socket::SSL };
+        croak "SSL requested, but IO::Socket::SSL not installed" if $@;
+    }
 
-	$self->set_sock($sock);
+    my $sock;
+    if ($ssl) {
+        $sock = IO::Socket::SSL->new(
+            Proto    => 'tcp',
+            PeerPort => $port,
+            PeerAddr => $server,
+            Type     => SOCK_STREAM
+            )
+            or croak
+            "Can't open SSL connection to $server:$port: $IO::Socket::SSL::ERROR";
+    }
+    else {
+        $sock = IO::Socket::INET->new(
+            Proto    => 'tcp',
+            PeerPort => $port,
+            PeerAddr => $server,
+            Type     => SOCK_STREAM
+            )
+            or croak "Can't open connection to $server:$port - $!";
+    }
 
-	$self->check_version;
+    $sock->autoflush(1);
 
-	my $auth_user = $self->get_auth_user;
-	my $auth_pass = $self->get_auth_pass;
+    $self->set_sock($sock);
 
-	if ( $auth_user ) {
-		my $rc = $self->send_request ({
-			cmd  => 'auth',
-			user => $auth_user,
-			pass => $auth_pass,
-		});
-		if ( not $rc->{ok} ) {
-			$self->disconnect;
-			croak $rc->{msg};
-		}
-	}
-	
-	if ( not $self->get_classes ) {
-		$self->load_all_classes;
-	} else {
-		$self->load_classes;
-	}
-	
-	$self->set_connected(1);
-	
-	1;
+    $self->check_version;
+
+    my $auth_user = $self->get_auth_user;
+    my $auth_pass = $self->get_auth_pass;
+
+    if ($auth_user) {
+        my $rc = $self->send_request(
+            {   cmd  => 'auth',
+                user => $auth_user,
+                pass => $auth_pass,
+            }
+        );
+        if ( not $rc->{ok} ) {
+            $self->disconnect;
+            croak $rc->{msg};
+        }
+    }
+
+    if ( not $self->get_classes ) {
+        $self->load_all_classes;
+    }
+    else {
+        $self->load_classes;
+    }
+
+    $self->set_connected(1);
+
+    1;
 }
 
 sub log_connect {
-	my $class = shift;
-	my %par = @_;
-	my ($server, $port) = @par{'server','port'};
-	
-	my $sock = IO::Socket::INET->new(
-		Proto     => 'tcp',
-        	PeerPort  => $port,
-        	PeerAddr  => $server,
-		Type      => SOCK_STREAM
-	) or croak "Can't open connection to $server:$port - $!";
+    my $class = shift;
+    my %par   = @_;
+    my ( $server, $port ) = @par{ 'server', 'port' };
 
-	return $sock;
+    my $sock = IO::Socket::INET->new(
+        Proto    => 'tcp',
+        PeerPort => $port,
+        PeerAddr => $server,
+        Type     => SOCK_STREAM
+        )
+        or croak "Can't open connection to $server:$port - $!";
+
+    return $sock;
 }
 
 sub disconnect {
-	my $self = shift;
+    my $self = shift;
 
-	close ($self->get_sock) if $self->get_sock;
-	$self->set_connected(0);
+    close( $self->get_sock ) if $self->get_sock;
+    $self->set_connected(0);
 
-	1;
+    1;
 }
 
 sub DESTROY {
-	shift->disconnect;
+    shift->disconnect;
 }
 
 sub error {
-	my $self = shift;
-	my ($message) = @_;
+    my $self = shift;
+    my ($message) = @_;
 
-	my $error_cb = $self->get_error_cb;
-	
-	if ( $error_cb ) {
-		&$error_cb($self, $message);
-	} else {
-		die "Unhandled error in client/server communication: $message";
-	}
-	
-	1;
+    my $error_cb = $self->get_error_cb;
+
+    if ($error_cb) {
+        &$error_cb( $self, $message );
+    }
+    else {
+        die "Unhandled error in client/server communication: $message";
+    }
+
+    1;
 }
 
 sub check_version {
-	my $self = shift;
-	
-	my $rc = $self->send_request ({
-		cmd   => 'version',
-	});
-	
-	$self->set_server_version($rc->{version});
-	$self->set_server_protocol($rc->{protocol});
-	
-	if ( $rc->{version} ne $self->get_client_version ) {
-		warn "Event::RPC warning: server version $rc->{version} != ".
-		     "client version ".$self->get_client_version;
-	}
-	
-	if ( $rc->{protocol} < $self->get_client_protocol ) {
-		die "FATAL: Server protocol version $rc->{protocol} < ".
-		    "client protocol version ".$self->get_client_protocol;
-	}
-	
-	1;
+    my $self = shift;
+
+    my $rc = $self->send_request( { cmd => 'version', } );
+
+    $self->set_server_version( $rc->{version} );
+    $self->set_server_protocol( $rc->{protocol} );
+
+    if ( $rc->{version} ne $self->get_client_version ) {
+        warn "Event::RPC warning: server version $rc->{version} != "
+            . "client version "
+            . $self->get_client_version;
+    }
+
+    if ( $rc->{protocol} < $self->get_client_protocol ) {
+        die "FATAL: Server protocol version $rc->{protocol} < "
+            . "client protocol version "
+            . $self->get_client_protocol;
+    }
+
+    1;
 }
 
 sub load_all_classes {
-	my $self = shift;
-	
-	my $rc = $self->send_request ({
-		cmd   => 'class_info_all',
-	});
-	
-	my $class_info_all = $rc->{class_info_all};
-	
-	foreach my $class ( keys %{$class_info_all} ) {
-		$self->load_class ($class, $class_info_all->{$class} );
-	}
-	
-	1;
+    my $self = shift;
+
+    my $rc = $self->send_request( { cmd => 'class_info_all', } );
+
+    my $class_info_all = $rc->{class_info_all};
+
+    foreach my $class ( keys %{$class_info_all} ) {
+        $self->load_class( $class, $class_info_all->{$class} );
+    }
+
+    1;
 }
 
 sub load_classes {
-	my $self = shift;
-	
-	my $classes = $self->get_classes;
-	my %classes;
-	@classes{@{$classes}} = (1) x @{$classes};
+    my $self = shift;
 
-	my $rc = $self->send_request ({
-		cmd   => 'classes_list',
-	});
-	
-	foreach my $class ( @{$rc->{classes}} ) {
-		next if not $classes{$class};
-		$classes{$class} = 0;
+    my $classes = $self->get_classes;
+    my %classes;
+    @classes{ @{$classes} } = (1) x @{$classes};
 
-		my $rc = $self->send_request ({
-			cmd   => 'class_info',
-			class => $class,
-		});
+    my $rc = $self->send_request( { cmd => 'classes_list', } );
 
-		$self->load_class ($class, $rc->{methods});
-	}
+    foreach my $class ( @{ $rc->{classes} } ) {
+        next if not $classes{$class};
+        $classes{$class} = 0;
 
-	foreach my $class ( @{$classes} ) {
-		warn "WARNING: Class '$class' not exported by server"
-			if $classes{$class};
-	}
-	
-	1;
+        my $rc = $self->send_request(
+            {   cmd   => 'class_info',
+                class => $class,
+            }
+        );
+
+        $self->load_class( $class, $rc->{methods} );
+    }
+
+    foreach my $class ( @{$classes} ) {
+        warn "WARNING: Class '$class' not exported by server"
+            if $classes{$class};
+    }
+
+    1;
 }
 
 sub load_class {
-	my $self = shift;
-	my ($class, $methods) = @_;
+    my $self = shift;
+    my ( $class, $methods ) = @_;
 
-	my $loaded_classes = $self->get_loaded_classes;
-	return 1 if $loaded_classes->{$class};
-	$loaded_classes->{$class} = 1;
+    my $loaded_classes = $self->get_loaded_classes;
+    return 1 if $loaded_classes->{$class};
+    $loaded_classes->{$class} = 1;
 
-	my $local_method;
-	my $local_class = $class;
+    my $local_method;
+    my $class_map   = $self->get_class_map;
+    my $local_class = $class_map->{$class} || $class;
 
-	# create local destructor for this class
-	{
-		no strict 'refs';
-		my $local_method = $local_class.'::'."DESTROY";
-		*$local_method = sub {
-			return if not $self->get_connected;
-			my $oid_ref = shift;
-			$self->send_request ({
-				cmd    => "client_destroy",
-				oid    => ${$oid_ref},
-			});
-		};
-	}
+    # create local destructor for this class
+    {
+        no strict 'refs';
+        my $local_method = $local_class . '::' . "DESTROY";
+        *$local_method = sub {
+            return if not $self->get_connected;
+            my $oid_ref = shift;
+            $self->send_request({
+                cmd => "client_destroy",
+                oid => ${$oid_ref},
+            });
+        };
+    }
 
-	# create local methods for this class
-	foreach my $method ( keys %{$methods} ) {
-		$local_method = $local_class.'::'.$method;
+    # create local methods for this class
+    foreach my $method ( keys %{$methods} ) {
+        $local_method = $local_class . '::' . $method;
 
-		my $method_type = $methods->{$method};
+        my $method_type = $methods->{$method};
 
-		if ( $method_type eq '_constructor' ) {
-			# this is a constructor for this class
-			my $request_method = $class.'::'.$method;
-			no strict 'refs';
-			*$local_method = sub {
-				shift;
-				my $rc = $self->send_request ({
-					cmd    => 'new',
-					method => $request_method,
-					params => \@_,
-				});
-				my $oid = $rc->{oid};
-				return bless \$oid, $local_class;
-			};
+        if ( $method_type eq '_constructor' ) {
+            # this is a constructor for this class
+            my $request_method = $class . '::' . $method;
+            no strict 'refs';
+            *$local_method = sub {
+                shift;
+                my $rc = $self->send_request({
+                    cmd    => 'new',
+                    method => $request_method,
+                    params => \@_,
+                });
+                my $oid = $rc->{oid};
+                return bless \$oid, $local_class;
+            };
+        }
+        elsif ( $method_type eq '1' ) {
+            # this is a simple method
+            my $request_method = $method;
+            no strict 'refs';
+            *$local_method = sub {
+                my $oid_ref = shift;
+                my $rc = $self->send_request({
+                    cmd    => 'exec',
+                    oid    => ${$oid_ref},
+                    method => $request_method,
+                    params => \@_,
+                });
+                return unless $rc;
+                $rc = $rc->{rc};
+                return @{$rc} if wantarray;
+                return $rc->[0];
+            };
+        }
+        else {
+            # this is a object returner
+            my $request_method = $method;
+            no strict 'refs';
+            *$local_method = sub {
+                my $oid_ref = shift;
+                my $rc      = $self->send_request({
+                    cmd    => 'exec',
+                    oid    => ${$oid_ref},
+                    method => $request_method,
+                    params => \@_,
+                });
+                return unless $rc;
+                $rc = $rc->{rc};
 
-		} elsif ( $method_type eq '1' ){
-			# this is a simple method
-			my $request_method = $method;
-			no strict 'refs';
-			*$local_method = sub {
-				my $oid_ref = shift;
-				my $rc = $self->send_request ({
-					cmd    => 'exec',
-					oid    => ${$oid_ref},
-					method => $request_method,
-					params => \@_,
-				})->{rc};
-				return @{$rc} if wantarray;
-				return $rc->[0];
-			};
+                foreach my $val ( @{$rc} ) {
+                    if ( ref $val eq 'ARRAY' ) {
+                        foreach my $list_elem ( @{$val} ) {
+                            my ($class) = split( "=", "$list_elem", 2 );
+                            $self->load_class($class)
+                                unless $loaded_classes->{$class};
+                            my $list_elem_copy = $list_elem;
+                            $list_elem = \$list_elem_copy;
+                            bless $list_elem,
+                                ( $class_map->{$class} || $class );
+                        }
+                    }
+                    elsif ( ref $val eq 'HASH' ) {
+                        foreach my $hash_elem ( values %{$val} ) {
+                            my ($class) = split( "=", "$hash_elem", 2 );
+                            $self->load_class($class)
+                                unless $loaded_classes->{$class};
+                            my $hash_elem_copy = $hash_elem;
+                            $hash_elem = \$hash_elem_copy;
+                            bless $hash_elem,
+                                ( $class_map->{$class} || $class );
+                        }
+                    }
+                    elsif ( defined $val ) {
+                        my ($class) = split( "=", "$val", 2 );
+                        $self->load_class($class)
+                            unless $loaded_classes->{$class};
+                        my $val_copy = $val;
+                        $val = \$val_copy;
+                        bless $val, ( $class_map->{$class} || $class );
+                    }
+                }
+                return @{$rc} if wantarray;
+                return $rc->[0];
+            };
+        }
+    }
 
-		} else {
-			# this is a object returner
-			my $request_method = $method;
-			no strict 'refs';
-			*$local_method = sub {
-				my $oid_ref = shift;
-				my $rc = $self->send_request ({
-					cmd    => 'exec',
-					oid    => ${$oid_ref},
-					method => $request_method,
-					params => \@_,
-				})->{rc};
-
-				foreach my $val ( @{$rc} ) {
-					if ( ref $val eq 'ARRAY' ) {
-						foreach my $list_elem ( @{$val} ) {
-							my ($class) = split("=","$list_elem",2);
-							$self->load_class($class)
-								unless $loaded_classes->{$class};
-							my $list_elem_copy = $list_elem;
-							$list_elem = \$list_elem_copy;
-							bless $list_elem, $class;
-						}
-					} elsif ( ref $val eq 'HASH' ) {
-						foreach my $hash_elem ( values %{$val} ) {
-							my ($class) = split("=","$hash_elem",2);
-							$self->load_class($class)
-								unless $loaded_classes->{$class};
-							my $hash_elem_copy = $hash_elem;
-							$hash_elem = \$hash_elem_copy;
-							bless $hash_elem, $class;
-						}
-					} else{
-						my ($class) = split("=","$val",2);
-						$self->load_class($class)
-							unless $loaded_classes->{$class};
-						my $val_copy = $val;
-						$val = \$val_copy;
-						bless $val, $class;
-					}
-				}
-				return @{$rc} if wantarray;
-				return $rc->[0];
-			};
-		}
-	}
-
-	return $local_class;
+    return $local_class;
 }
 
 sub send_request {
-	my $self = shift;
-	my ($request) = @_;
-	
-	my $message = Event::RPC::Message->new ($self->get_sock);
+    my $self = shift;
+    my ($request) = @_;
 
-	$message->write_blocked($request);
+    my $message = Event::RPC::Message->new( $self->get_sock );
 
-	my $rc = eval { $message->read_blocked };
+    $message->write_blocked($request);
 
-	if ( $@ ) {
-		$self->error($@);
-		return;
-	}
+    my $rc = eval { $message->read_blocked };
 
-	if ( not $rc->{ok} ) {
-		$rc->{msg} .= "\n" if not $rc->{msg} =~ /\n$/;
-		croak "$rc->{msg}".
-		      "Called via Event::RPC::Client";
-	}
+    if ($@) {
+        $self->error($@);
+        return;
+    }
 
-	return $rc;
+    if ( not $rc->{ok} ) {
+        $rc->{msg} .= "\n" if not $rc->{msg} =~ /\n$/;
+        croak ("$rc->{msg} -- called via Event::RPC::Client");
+    }
+
+    return $rc;
 }
 
 1;
@@ -409,9 +426,10 @@ Event::RPC::Client - Client API to connect to Event::RPC Servers
     port => 5555,
     
     #-- Optional arguments
-    classes => [ "Event::RPC::Test" ],
+    classes   => [ "Event::RPC::Test" ],
+    class_map => { "Event::RPC::Test" => "My::Event::RPC::Test" },
 
-    ssl     => 1,
+    ssl       => 1,
 
     auth_user => "fred",
     auth_pass => Event::RPC->crypt("fred",$password),
@@ -495,6 +513,35 @@ By default all server classes are imported. Use this feature if
 your server exports a huge list of classes, but your client
 doesn't need all of them. This saves memory in the client and
 connect performance increases.
+
+=item B<class_map>
+
+Optionally you can map the class names from the server to a
+different name on the local client using the B<class_map> hash.
+
+This is necessary if you like to use the same classes locally
+and remotely. Imported classes from the server are by default
+registered under the same name on the client, so this conflicts
+with local classes named identically.
+
+On the client you access the remote classes under the name
+assigned in the class map. For example with this map
+
+  class_map => { "Event::ExecFlow::Job" => "_srv::Event::ExecFlow::Job" }
+
+you need to write this on the client, if you like to create
+an object remotely on the server:
+
+  my $server_job = _srv::Event::ExecFlow::Job->new ( ... );
+
+and this to create an object on the client:
+
+  my $client_job = Event::ExecFlow::Job->new ( ... );
+
+The server knows nothing of the renaming on client side, so you
+still write this on the server to create objects there:
+
+  my $job = Event::ExecFlow::Job->new ( ... );
 
 =back
 
@@ -614,7 +661,7 @@ Returns the Event::RPC protocol number of the client.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2002-2005 by Jörn Reder.
+Copyright 2002-2006 by Jörn Reder.
 
 This library is free software; you can redistribute it and/or modify
 it under the terms of the GNU Library General Public License as
