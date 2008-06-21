@@ -19,7 +19,9 @@ t/02.cnct.t
 t/03.cnct-auth.t
 t/04.cnct-auth-ssl.t
 t/05.func.t
+t/06.object2.t
 t/Event_RPC_Test.pm
+t/Event_RPC_Test2.pm
 t/Event_RPC_Test_Server.pm
 t/ssl/server.crt
 t/ssl/server.csr

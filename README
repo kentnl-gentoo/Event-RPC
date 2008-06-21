@@ -12,8 +12,8 @@ SYNOPSIS
       $server->start;
 
       ----------------------------------------------------------
-  
-      #-- Client Code
+      
+  #-- Client Code
       use Event::RPC::Client;
       my $client = Event::RPC::Client->new (
           server   => "localhost",

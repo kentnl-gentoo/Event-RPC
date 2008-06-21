@@ -1,6 +1,15 @@
-$Id: Changes,v 1.14 2006/04/23 08:37:41 joern Exp $
+$Id: Changes,v 1.15 2008/06/21 12:44:49 joern Exp $
 
 Revision history and release notes for Event::RPC:
+
+1.00 Sat Jun 21, 2008, joern
+    Notes:
+    - Time for version 1.00 ;)
+
+    Features:
+    - load_modules option added to Event::RPC::Server.
+    - timeout option added to Event::RPC::Client. Patch
+      by Strzelecki Lukasz <strzelec AT rswsystems.pl>.
 
 0.90 Sun Apr 23, 2006, joern
     Notes:

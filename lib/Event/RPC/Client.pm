@@ -1,4 +1,4 @@
-# $Id: Client.pm,v 1.12 2006/04/23 08:37:41 joern Exp $
+# $Id: Client.pm,v 1.14 2008/06/21 12:47:59 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -23,6 +23,7 @@ sub get_client_protocol         { $Event::RPC::PROTOCOL                 }
 sub get_host                    { shift->{host}                         }
 sub get_port                    { shift->{port}                         }
 sub get_sock                    { shift->{sock}                         }
+sub get_timeout                 { shift->{timeout}                      }
 sub get_classes                 { shift->{classes}                      }
 sub get_class_map               { shift->{class_map}                    }
 sub get_loaded_classes          { shift->{loaded_classes}               }
@@ -38,6 +39,7 @@ sub get_server_protocol         { shift->{server_protocol}              }
 sub set_host                    { shift->{host}                 = $_[1] }
 sub set_port                    { shift->{port}                 = $_[1] }
 sub set_sock                    { shift->{sock}                 = $_[1] }
+sub set_timeout                 { shift->{timeout}              = $_[1] }
 sub set_classes                 { shift->{classes}              = $_[1] }
 sub set_class_map               { shift->{class_map}            = $_[1] }
 sub set_loaded_classes          { shift->{loaded_classes}       = $_[1] }
@@ -53,8 +55,8 @@ sub set_server_protocol         { shift->{server_protocol}      = $_[1] }
 sub new {
     my $class = shift;
     my %par   = @_;
-    my  ($server, $host, $port, $classes, $class_map, $error_cb) =
-    @par{'server','host','port','classes','class_map','error_cb'};
+    my  ($server, $host, $port, $classes, $class_map, $error_cb, $timeout) =
+    @par{'server','host','port','classes','class_map','error_cb','timeout'};
     my  ($ssl, $auth_user, $auth_pass) =
     @par{'ssl','auth_user','auth_pass'};
 
@@ -70,6 +72,7 @@ sub new {
         host           => $server,
         server         => $host,
         port           => $port,
+        timeout        => $timeout,
         classes        => $classes,
         class_map      => $class_map,
         ssl            => $ssl,
@@ -88,9 +91,10 @@ sub connect {
 
     croak "Client is already connected" if $self->get_connected;
 
-    my $ssl    = $self->get_ssl;
-    my $server = $self->get_server;
-    my $port   = $self->get_port;
+    my $ssl     = $self->get_ssl;
+    my $server  = $self->get_server;
+    my $port    = $self->get_port;
+    my $timeout = $self->get_timeout;
 
     if ($ssl) {
         eval { require IO::Socket::SSL };
@@ -103,19 +107,20 @@ sub connect {
             Proto    => 'tcp',
             PeerPort => $port,
             PeerAddr => $server,
-            Type     => SOCK_STREAM
-            )
-            or croak
-            "Can't open SSL connection to $server:$port: $IO::Socket::SSL::ERROR";
+            Type     => SOCK_STREAM,
+            Timeout  => $timeout,
+        )
+        or croak "Can't open SSL connection to $server:$port: $IO::Socket::SSL::ERROR";
     }
     else {
         $sock = IO::Socket::INET->new(
             Proto    => 'tcp',
             PeerPort => $port,
             PeerAddr => $server,
-            Type     => SOCK_STREAM
-            )
-            or croak "Can't open connection to $server:$port - $!";
+            Type     => SOCK_STREAM,
+            Timeout  => $timeout,
+        )
+        or croak "Can't open connection to $server:$port - $!";
     }
 
     $sock->autoflush(1);
@@ -162,8 +167,8 @@ sub log_connect {
         PeerPort => $port,
         PeerAddr => $server,
         Type     => SOCK_STREAM
-        )
-        or croak "Can't open connection to $server:$port - $!";
+    )
+    or croak "Can't open connection to $server:$port - $!";
 
     return $sock;
 }
@@ -430,6 +435,7 @@ Event::RPC::Client - Client API to connect to Event::RPC Servers
     class_map => { "Event::RPC::Test" => "My::Event::RPC::Test" },
 
     ssl       => 1,
+    timeout   => 10,
 
     auth_user => "fred",
     auth_pass => Event::RPC->crypt("fred",$password),
@@ -496,6 +502,17 @@ Use a IP address or DNS name here.
 =item B<port>
 
 This is the TCP port the server is listening to.
+
+=back
+
+=head2 NETWORK OPTIONS
+
+=over 4
+
+=item B<timeout>
+
+Specify a timeout (in seconds), which is applied when connecting
+the server.
 
 =back
 

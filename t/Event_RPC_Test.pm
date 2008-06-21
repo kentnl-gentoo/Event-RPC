@@ -1,4 +1,4 @@
-# $Id: Event_RPC_Test.pm,v 1.3 2006/02/24 14:28:44 joern Exp $
+# $Id: Event_RPC_Test.pm,v 1.4 2008/06/21 12:44:13 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -10,10 +10,15 @@
 
 package Event_RPC_Test;
 
+use Event_RPC_Test2;
+
 use strict;
 
 sub get_data			{ shift->{data}				}
+sub get_object2			{ shift->{object2}				}
+
 sub set_data			{ shift->{data}			= $_[1]	}
+sub set_object2			{ shift->{object2}			= $_[1]	}
 
 sub new {
 	my $class = shift;
@@ -22,6 +27,7 @@ sub new {
 
 	my $self = bless {
 		data	=> $data,
+		object2 => Event_RPC_Test2->new("foo"),
 	}, $class;
 	
 	return $self;
@@ -92,6 +98,12 @@ sub get_object_cnt {
 
 sub get_undef_object {
         return undef;
+}
+
+sub new_object2 {
+    my $class = shift;
+    my ($data) = @_;
+    return Event_RPC_Test2->new($data);
 }
 
 1;

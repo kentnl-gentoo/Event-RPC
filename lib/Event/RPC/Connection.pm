@@ -260,7 +260,7 @@ sub create_new_object {
 	}
 	
 	# load the class if not done yet
-	$self->load_class($class);
+	$self->load_class($class) if $self->get_server->get_load_modules;
 
 	# resolve object params
 	$self->resolve_object_params ($request->{params});
@@ -387,7 +387,7 @@ sub execute_object_method {
 	}
 	
 	# (re)load the class if not done yet
-	$self->load_class($class);
+	$self->load_class($class) if $self->get_server->get_load_modules;
 
 	# resolve object params
 	$self->resolve_object_params ($request->{params});

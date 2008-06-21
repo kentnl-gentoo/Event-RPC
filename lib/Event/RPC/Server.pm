@@ -1,4 +1,4 @@
-# $Id: Server.pm,v 1.10 2006/04/23 08:37:41 joern Exp $
+# $Id: Server.pm,v 1.12 2008/06/21 12:47:59 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -42,6 +42,7 @@ sub get_auth_passwd_href	{ shift->{auth_passwd_href}		}
 sub get_auth_module             { shift->{auth_module}                  }
 sub get_listeners_started	{ shift->{listeners_started}		}
 sub get_connection_hook		{ shift->{connection_hook}		}
+sub get_load_modules            { shift->{load_modules}                 }
 sub get_auto_reload_modules	{ shift->{auto_reload_modules}		}
 sub get_active_connection       { shift->{active_connection}            }
 
@@ -67,6 +68,7 @@ sub set_auth_passwd_href	{ shift->{auth_passwd_href}	= $_[1]	}
 sub set_auth_module             { shift->{auth_module}          = $_[1] }
 sub set_listeners_started	{ shift->{listeners_started}	= $_[1]	}
 sub set_connection_hook		{ shift->{connection_hook}	= $_[1]	}
+sub set_load_modules            { shift->{load_modules}         = $_[1] }
 sub set_auto_reload_modules	{ shift->{auto_reload_modules}	= $_[1]	}
 sub set_active_connection       { shift->{active_connection}    = $_[1] }
 
@@ -82,11 +84,16 @@ sub new {
 	@par{'ssl','ssl_key_file','ssl_cert_file','ssl_passwd_cb'};
 	my  ($auth_required, $auth_passwd_href, $auth_module, $loop) =
 	@par{'auth_required','auth_passwd_href','auth_module','loop'};
-	my  ($connection_hook, $auto_reload_modules) =
-	@par{'connection_hook','auto_reload_modules'};
+	my  ($connection_hook, $auto_reload_modules, $load_modules) =
+	@par{'connection_hook','auto_reload_modules','load_modules'};
 
 	$name ||= "Event-RPC-Server";
 	
+        #-- for backwards compatibility 'load_modules' defaults to 1
+        if ( !exists $par{load_modules} ) {
+            $load_modules = 1;
+        }
+        
 	if ( not $loop ) {
 		eval {
 		    require Event::RPC::Loop::Event;
@@ -121,6 +128,7 @@ sub new {
 		auth_passwd_href	=> $auth_passwd_href,
                 auth_module             => $auth_module,
 
+                load_modules            => $load_modules,
 		auto_reload_modules	=> $auto_reload_modules,
 		connection_hook		=> $connection_hook,
 
@@ -441,6 +449,7 @@ Event::RPC::Server - Simple API for event driven RPC servers
       loop                => Event::RPC::Loop::Event->new(),
       
       host                => "localhost",
+      load_modules        => 1,
       auto_reload_modules => 1,
       connection_hook     => sub { ... },
   );
@@ -747,6 +756,12 @@ By default the network listeners are bound to all interfaces
 in the system. Use the host option to bind to a specific
 interface, e.g. "localhost" if you efficently want to prevent
 network clients from accessing your server.
+
+=item B<load_modules>
+
+Control whether the class module files should be loaded
+automatically when first accesed by a client. This options
+defaults to true, for backward compatibility reasons.
 
 =item B<auto_reload_modules>
 

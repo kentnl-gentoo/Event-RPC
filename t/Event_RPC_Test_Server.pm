@@ -2,8 +2,6 @@ package Event_RPC_Test_Server;
 
 use strict;
 
-use Event::RPC::Server;
-use Event::RPC::Logger;
 use lib qw(t);
 
 sub start_server {
@@ -14,11 +12,12 @@ sub start_server {
     my $server_pid = fork();
     die "can't fork" unless defined $server_pid;
     
-    #-- client tries to make a log connection to
-    #-- verify that the server is up and running
-    #-- (20 times with a usleep of 0.25, so the
-    #--  overall timeout is 10 seconds)
+    #-- Client?
     if ( $server_pid ) {
+        #-- client tries to make a log connection to
+        #-- verify that the server is up and running
+        #-- (20 times with a usleep of 0.25, so the
+        #--  overall timeout is 10 seconds)
         for ( 1..20 ) {
 	    eval {
 	        Event::RPC::Client->log_connect (
@@ -35,7 +34,15 @@ sub start_server {
 	    #-- wait a quarter second...
 	    select(undef, undef, undef, 0.25);
 	}
+        #-- Client is finished here
+        return;
     }
+
+    #-- We're in the server
+    require Event::RPC::Server;
+    require Event::RPC::Logger;
+    require Event_RPC_Test;
+    require Event_RPC_Test2;
 
     #-- This code is mainly copied from the server.pl
     #-- example and works with a command line style
@@ -91,22 +98,30 @@ sub start_server {
 #      logger             => $logger,
       loop               => $loop,
       start_log_listener => 1,
+      load_modules       => 0,
       %auth_args,
       %ssl_args,
       classes => {
-	'Event_RPC_Test'   => {
-	  new         	   => '_constructor',
-	  set_data    	   => 1,
-	  get_data    	   => 1,
-	  hello       	   => 1,
-	  quit	      	   => 1,
-	  clone	      	   => '_object',
-	  multi		   => '_object',
-	  echo		   => 1,
-          get_cid          => 1,
-          get_object_cnt   => 1,
-          get_undef_object => '_object',
-	},
+        	'Event_RPC_Test'   => {
+        	  new         	   => '_constructor',
+        	  set_data    	   => 1,
+        	  get_data    	   => 1,
+        	  hello       	   => 1,
+        	  quit	      	   => 1,
+        	  clone	      	   => '_object',
+        	  multi		   => '_object',
+        	  get_object2      => '_object',
+        	  new_object2      => '_object',
+        	  echo		   => 1,
+                  get_cid          => 1,
+                  get_object_cnt   => 1,
+                  get_undef_object => '_object',
+        	},
+        	'Event_RPC_Test2'  => {
+        	  new         	   => '_constructor',
+        	  set_data         => 1,
+        	  get_data         => 1,
+        	},
       },
       connection_hook   => sub {
       	  my ($conn, $event) = @_;
