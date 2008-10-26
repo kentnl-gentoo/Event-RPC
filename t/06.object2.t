@@ -11,7 +11,7 @@ if ( not $depend_modules ) {
 	plan skip_all => "Neither Event nor Glib installed";
 }
 
-plan tests => 9;
+plan tests => 10;
 
 my $PORT = 27811;
 
@@ -38,7 +38,7 @@ ok(1, "connected");
 # create instance of test class over RPC
 my $data = "Some test data. " x 6;
 my $object = Event_RPC_Test->new (
-	data => $data
+    data => $data
 );
 
 # check object
@@ -57,6 +57,10 @@ ok($object2->isa("Event_RPC_Test2"), "object is Event_RPC_Test2");
 
 # check data of object2
 ok($object2->get_data == $$, "object data is $$");
+
+# check if copying the complete object hash works
+my $ref = $object2->get_object_copy;
+ok($ref->{data} == $$, "object copy data is $$");
 
 # disconnect client
 ok ($client->disconnect, "client disconnected");

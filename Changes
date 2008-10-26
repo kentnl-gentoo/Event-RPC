@@ -1,6 +1,14 @@
-$Id: Changes,v 1.15 2008/06/21 12:44:49 joern Exp $
+$Id: Changes,v 1.17 2008/10/26 10:28:28 joern Exp $
 
 Revision history and release notes for Event::RPC:
+
+1.01 Sat Oct 25, 2008, joern
+    Bugfixes:
+    - Even objects returned by methods not declared as
+      an "object returner" where turned into Event::RPC
+      object handles instead of copying the complete
+      data structure to the client. Thanks for the report
+      to Alex <alex AT lokku.com>.
 
 1.00 Sat Jun 21, 2008, joern
     Notes:

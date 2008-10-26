@@ -121,6 +121,7 @@ sub start_server {
         	  new         	   => '_constructor',
         	  set_data         => 1,
         	  get_data         => 1,
+                  get_object_copy  => 1,
         	},
       },
       connection_hook   => sub {

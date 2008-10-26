@@ -14,5 +14,10 @@ sub new {
     }, $class;
 }
 
+sub get_object_copy {
+    my $self = shift;
+    return $self;
+}
+
 1;
 

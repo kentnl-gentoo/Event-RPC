@@ -386,6 +386,8 @@ sub execute_object_method {
 
 	}
 	
+        my $return_type = $self->get_classes->{$class}->{$method};
+        
 	# (re)load the class if not done yet
 	$self->load_class($class) if $self->get_server->get_load_modules;
 
@@ -411,11 +413,12 @@ sub execute_object_method {
 	$self->log (4, "Called method '$method' of object ".
 		       "with oid=$oid");
 
-	# check if objects are returned by this method
-	# and register them in our internal object table
-	# (if not already done yet)
-	my $key;
-	foreach my $rc ( @rc ) {
+        if ( $return_type eq '_object' ) {
+	    # check if objects are returned by this method
+	    # and register them in our internal object table
+	    # (if not already done yet)
+	    my $key;
+	    foreach my $rc ( @rc ) {
 		if ( ref ($rc) and ref ($rc) !~ /ARRAY|HASH|SCALAR/ ) {
 			# returns a single object
 			$self->log (4, "Method returns object: $rc");
@@ -455,7 +458,8 @@ sub execute_object_method {
 				}
 			}
 		}
-	}
+	    }
+        }
 
 	# return rc
 	return {
