@@ -1,6 +1,17 @@
-$Id: Changes,v 1.17 2008/10/26 10:28:28 joern Exp $
+$Id: Changes,v 1.19 2013-02-02 11:20:48 joern Exp $
 
 Revision history and release notes for Event::RPC:
+
+1.03 Sat Feb  2, 2013, joern
+    Features:
+    - Added options 'ssl_ca_file and 'ssl_ca_path' options
+      to Event::RPC::Client, which enable SSL peer verifcation
+      on the client. Thanks for the report about a security
+      warning of IO::Socket::SSL to Moritz Bunkus.
+
+1.02 Tue Mar  8, 2011, joern
+    Features:
+    - Added AnyEvent mainloop implementation.
 
 1.01 Sat Oct 25, 2008, joern
     Bugfixes:

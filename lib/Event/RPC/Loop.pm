@@ -1,4 +1,4 @@
-# $Id: Loop.pm,v 1.3 2006/04/23 08:37:41 joern Exp $
+# $Id: Loop.pm,v 1.4 2009-04-22 10:53:51 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -11,8 +11,8 @@
 package Event::RPC::Loop;
 
 sub new {
-	my $class = shift;
-	return bless {}, $class;
+    my $class = shift;
+    return bless {}, $class;
 }
 
 1;

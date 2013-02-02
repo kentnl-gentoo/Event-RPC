@@ -1,4 +1,4 @@
-# $Id: Client.pm,v 1.14 2008/06/21 12:47:59 joern Exp $
+# $Id: Client.pm,v 1.18 2013-02-02 11:24:31 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -29,6 +29,8 @@ sub get_class_map               { shift->{class_map}                    }
 sub get_loaded_classes          { shift->{loaded_classes}               }
 sub get_error_cb                { shift->{error_cb}                     }
 sub get_ssl                     { shift->{ssl}                          }
+sub get_ssl_ca_file             { shift->{ssl_ca_file}                  }
+sub get_ssl_ca_path             { shift->{ssl_ca_path}                  }
 sub get_auth_user               { shift->{auth_user}                    }
 sub get_auth_pass               { shift->{auth_pass}                    }
 sub get_connected               { shift->{connected}                    }
@@ -45,6 +47,8 @@ sub set_class_map               { shift->{class_map}            = $_[1] }
 sub set_loaded_classes          { shift->{loaded_classes}       = $_[1] }
 sub set_error_cb                { shift->{error_cb}             = $_[1] }
 sub set_ssl                     { shift->{ssl}                  = $_[1] }
+sub set_ssl_ca_file             { shift->{ssl_ca_file}          = $_[1] }
+sub set_ssl_ca_path             { shift->{ssl_ca_path}          = $_[1] }
 sub set_auth_user               { shift->{auth_user}            = $_[1] }
 sub set_auth_pass               { shift->{auth_pass}            = $_[1] }
 sub set_connected               { shift->{connected}            = $_[1] }
@@ -57,8 +61,8 @@ sub new {
     my %par   = @_;
     my  ($server, $host, $port, $classes, $class_map, $error_cb, $timeout) =
     @par{'server','host','port','classes','class_map','error_cb','timeout'};
-    my  ($ssl, $auth_user, $auth_pass) =
-    @par{'ssl','auth_user','auth_pass'};
+    my  ($ssl, $ssl_ca_file, $auth_user, $auth_pass) =
+    @par{'ssl','ssl_ca_file','auth_user','auth_pass'};
 
     $server ||= '';
     $host   ||= '';
@@ -76,6 +80,7 @@ sub new {
         classes        => $classes,
         class_map      => $class_map,
         ssl            => $ssl,
+        ssl_ca_file    => $ssl_ca_file,
         auth_user      => $auth_user,
         auth_pass      => $auth_pass,
         error_cb       => $error_cb,
@@ -97,18 +102,33 @@ sub connect {
     my $timeout = $self->get_timeout;
 
     if ($ssl) {
-        eval { require IO::Socket::SSL };
+        eval { use IO::Socket::SSL };
         croak "SSL requested, but IO::Socket::SSL not installed" if $@;
     }
 
     my $sock;
     if ($ssl) {
+        my @verify_opts;
+        if ( $self->get_ssl_ca_file or $self->get_ssl_ca_path ) {
+            push @verify_opts, (
+                SSL_verify_mode => SSL_VERIFY_PEER,
+                SSL_ca_file     => $self->get_ssl_ca_file,
+                SSL_ca_path     => $self->get_ssl_ca_path,
+            );
+        }
+        else {
+            push @verify_opts, (
+                SSL_verify_mode => SSL_VERIFY_NONE,
+            );
+        }
+
         $sock = IO::Socket::SSL->new(
             Proto    => 'tcp',
             PeerPort => $port,
             PeerAddr => $server,
             Type     => SOCK_STREAM,
             Timeout  => $timeout,
+            @verify_opts
         )
         or croak "Can't open SSL connection to $server:$port: $IO::Socket::SSL::ERROR";
     }
@@ -434,8 +454,11 @@ Event::RPC::Client - Client API to connect to Event::RPC Servers
     classes   => [ "Event::RPC::Test" ],
     class_map => { "Event::RPC::Test" => "My::Event::RPC::Test" },
 
-    ssl       => 1,
-    timeout   => 10,
+    ssl         => 1,
+    ssl_ca_file => "some/ca.crt",
+    ssl_ca_path => "some/ca/dir",
+
+    timeout     => 10,
 
     auth_user => "fred",
     auth_pass => Event::RPC->crypt("fred",$password),
@@ -562,16 +585,30 @@ still write this on the server to create objects there:
 
 =back
 
-=head2 SSL OPTION
+=head2 SSL OPTIONS
 
 If the server accepts only SSL connections you need to enable
-ssl here in the client as well:
+ssl here in the client as well. By default the SSL connection
+will be established without any peer verification, which makes
+Man-in-the-Middle attacks possible. If you want to prevent that,
+you need to set either B<ssl_ca_file> or B<ssl_ca_path> option.
 
 =over 4
 
 =item B<ssl>
 
 Set this option to 1 to encrypt the network connection using SSL.
+
+=item B<ssl_ca_file>
+
+Path to the the Certificate Authority's certificate file
+(ca.crt), your server key was signed with.
+
+=item B<ssl_ca_path>
+
+Path of a directory containing several trusted certificates with
+a proper index. Please refer to the OpenSSL documentation for
+details about setting up such a directory.
 
 =back
 

@@ -5,543 +5,545 @@ use Carp;
 
 my $CONNECTION_ID;
 
-sub get_cid			{ shift->{cid}				}
-sub get_sock			{ shift->{sock}				}
-sub get_server			{ shift->{server}			}
+sub get_cid                     { shift->{cid}                          }
+sub get_sock                    { shift->{sock}                         }
+sub get_server                  { shift->{server}                       }
 
-sub get_classes			{ shift->{server}->{classes}		}
-sub get_loaded_classes		{ shift->{server}->{loaded_classes}	}
-sub get_objects			{ shift->{server}->{objects}		}
-sub get_client_oids		{ shift->{client_oids}		        }
+sub get_classes                 { shift->{server}->{classes}            }
+sub get_loaded_classes          { shift->{server}->{loaded_classes}     }
+sub get_objects                 { shift->{server}->{objects}            }
+sub get_client_oids             { shift->{client_oids}                  }
 
-sub get_watcher			{ shift->{watcher}			}
-sub get_message			{ shift->{message}			}
-sub get_is_authenticated	{ shift->{is_authenticated}		}
-sub get_auth_user		{ shift->{auth_user}			}
+sub get_watcher                 { shift->{watcher}                      }
+sub get_message                 { shift->{message}                      }
+sub get_is_authenticated        { shift->{is_authenticated}             }
+sub get_auth_user               { shift->{auth_user}                    }
 
-sub set_watcher			{ shift->{watcher}		= $_[1]	}
-sub set_message			{ shift->{message}		= $_[1]	}
-sub set_is_authenticated	{ shift->{is_authenticated}	= $_[1]	}
-sub set_auth_user		{ shift->{auth_user}		= $_[1]	}
+sub set_watcher                 { shift->{watcher}              = $_[1] }
+sub set_message                 { shift->{message}              = $_[1] }
+sub set_is_authenticated        { shift->{is_authenticated}     = $_[1] }
+sub set_auth_user               { shift->{auth_user}            = $_[1] }
 
 sub new {
-	my $class = shift;
-	my ($server, $sock) = @_;
+    my $class = shift;
+    my ($server, $sock) = @_;
 
-	my $cid = ++$CONNECTION_ID;
-	
-	my $self = bless {
-		cid     		=> $cid,
-		sock    		=> $sock,
-		server  		=> $server,
-		is_authenticated	=> (!$server->get_auth_required),
-		auth_user		=> "",
-		watcher 		=> undef,
-		message 		=> undef,
-		client_oids		=> {},
-	}, $class;
+    my $cid = ++$CONNECTION_ID;
 
-	if ( $sock ) {
-		$self->log (2,
-			"Got new RPC connection. Connection ID is $cid"
-		);
-		$self->{watcher} = $self->get_server->get_loop->add_io_watcher (
-			fh   => $sock,
-			poll => 'r',
-			cb   => sub { $self->input; 1 },
-			desc => "rpc client cid=$cid",
-		);
-	}
+    my $self = bless {
+        cid                     => $cid,
+        sock                    => $sock,
+        server                  => $server,
+        is_authenticated        => (!$server->get_auth_required),
+        auth_user               => "",
+        watcher                 => undef,
+        message                 => undef,
+        client_oids             => {},
+    }, $class;
 
-	my $connection_hook = $server->get_connection_hook;
-	&$connection_hook($self, "connect") if $connection_hook;
+    if ( $sock ) {
+        $self->log (2,
+            "Got new RPC connection. Connection ID is $cid"
+        );
+        $self->{watcher} = $self->get_server->get_loop->add_io_watcher (
+            fh   => $sock,
+            poll => 'r',
+            cb   => sub { $self->input; 1 },
+            desc => "rpc client cid=$cid",
+        );
+    }
 
-	return $self;
+    my $connection_hook = $server->get_connection_hook;
+    &$connection_hook($self, "connect") if $connection_hook;
+
+    return $self;
 }
 
 sub disconnect {
-	my $self = shift;
+    my $self = shift;
 
-	$self->get_server->get_loop->del_io_watcher($self->get_watcher);
-	$self->set_watcher(undef);
-	close $self->get_sock;
+    $self->get_server->get_loop->del_io_watcher($self->get_watcher);
+    $self->set_watcher(undef);
+    close $self->get_sock;
 
-	my $server = $self->get_server;
+    my $server = $self->get_server;
 
-	$server->set_clients_connected ( $self->get_server->get_clients_connected - 1 );
+    $server->set_clients_connected ( $self->get_server->get_clients_connected - 1 );
 
-	foreach my $oid ( keys %{$self->get_client_oids} ) {
-		$server->deregister_object($oid);
-	}
+    foreach my $oid ( keys %{$self->get_client_oids} ) {
+        $server->deregister_object($oid);
+    }
 
-	$self->log(2, "Client disconnected");
+    $self->log(2, "Client disconnected");
 
-	my $connection_hook = $server->get_connection_hook;
-	&$connection_hook($self, "disconnect") if $connection_hook;
+    my $connection_hook = $server->get_connection_hook;
+    &$connection_hook($self, "disconnect") if $connection_hook;
 
-	1;
+    1;
 }
 
 sub get_client_object {
-        my $self = shift;
-        my ($oid) = @_;
-        
-        croak "No object registered with oid '$oid'"
-            unless $self->get_client_objects->{$oid};
+    my $self = shift;
+    my ($oid) = @_;
 
-        return $self->get_client_objects->{$oid};
+    croak "No object registered with oid '$oid'"
+        unless $self->get_client_objects->{$oid};
+
+    return $self->get_client_objects->{$oid};
 }
 
 sub log {
-	my $self = shift;
+    my $self = shift;
 
-	my ($level, $msg);
-	if ( @_ == 2 ) {
-		($level, $msg) = @_;
-	} else {
-		($msg) = @_;
-		$level = 1;
-	}
+    my ($level, $msg);
+    if ( @_ == 2 ) {
+        ($level, $msg) = @_;
+    } else {
+        ($msg) = @_;
+        $level = 1;
+    }
 
-	$msg = "cid=".$self->get_cid.": $msg";
-	
-	return $self->get_server->log ($level, $msg);
+    $msg = "cid=".$self->get_cid.": $msg";
+
+    return $self->get_server->log ($level, $msg);
 }
 
 sub input {
-	my $self = shift;
-	my ($e) = @_;
+    my $self = shift;
+    my ($e) = @_;
 
-	my $server  = $self->get_server;
-	my $message = $self->get_message;
+    my $server  = $self->get_server;
+    my $message = $self->get_message;
 
-	if ( not $message ) {
-		$message = Event::RPC::Message->new ($self->get_sock);
-		$self->set_message($message);
-	}
+    if ( not $message ) {
+        $message = Event::RPC::Message->new ($self->get_sock);
+        $self->set_message($message);
+    }
 
-	my $request = eval { $message->read } || '';
-	my $error = $@;
+    my $request = eval { $message->read } || '';
+    my $error = $@;
 
-	return if $request eq '' && $error eq '';
+    return if $request eq '' && $error eq '';
 
-	$self->set_message(undef);
+    $self->set_message(undef);
 
-	return $self->disconnect
-		if $request eq "DISCONNECT\n" or
-		   $error =~ /DISCONNECTED/;
+    return $self->disconnect
+        if $request eq "DISCONNECT\n" or
+           $error =~ /DISCONNECTED/;
 
-        $server->set_active_connection($self);
+    $server->set_active_connection($self);
 
-	my ($cmd, $rc);
-	$cmd = $request->{cmd} if not $error;
-	
-	$self->log(4, "RPC command: $cmd");
-	
-	if ( $error ) {
-		$self->log ("Unexpected error on incoming RPC call: $@");
-		$rc = {
-			ok  => 0,
-			msg => "Unexpected error on incoming RPC call: $@",
-		};
+    my ($cmd, $rc);
+    $cmd = $request->{cmd} if not $error;
 
-	} elsif ( $cmd eq 'version' ) {
-		$rc = {
-			ok       => 1,
-			version  => $Event::RPC::VERSION,
-			protocol => $Event::RPC::PROTOCOL,
-		};
+    $self->log(4, "RPC command: $cmd");
 
-	} elsif ( $cmd eq 'auth' ) {
-		$rc = $self->authorize_user ($request);
+    if ( $error ) {
+        $self->log ("Unexpected error on incoming RPC call: $@");
+        $rc = {
+            ok  => 0,
+            msg => "Unexpected error on incoming RPC call: $@",
+        };
+    }
+    elsif ( $cmd eq 'version' ) {
+        $rc = {
+            ok       => 1,
+            version  => $Event::RPC::VERSION,
+            protocol => $Event::RPC::PROTOCOL,
+        };
+    }
+    elsif ( $cmd eq 'auth' ) {
+        $rc = $self->authorize_user ($request);
+    }
+    elsif ( $server->get_auth_required && !$self->get_is_authenticated ) {
+        $rc = {
+            ok  => 0,
+            msg => "Authorization required",                        
+        };
+    }
+    elsif ( $cmd eq 'new' ) {
+        $rc = $self->create_new_object ($request);
+    }
+    elsif ( $cmd eq 'exec' ) {
+        $rc = $self->execute_object_method ($request);
+    }
+    elsif ( $cmd eq 'classes_list' ) {
+        $rc = $self->get_classes_list ($request);
+    }
+    elsif ( $cmd eq 'class_info' ) {
+        $rc = $self->get_class_info ($request);
+    }
+    elsif ( $cmd eq 'class_info_all' ) {
+        $rc = $self->get_class_info_all ($request);
+    }
+    elsif ( $cmd eq 'client_destroy' ) {
+        $rc = $self->object_destroyed_on_client ($request);
+    }
+    else {
+        $self->log ("Unknown request command '$cmd'");
+        $rc = {
+            ok  => 0,
+            msg => "Unknown request command '$cmd'",
+        };
+    }
 
-	} elsif ( $server->get_auth_required && !$self->get_is_authenticated ) {
-		$rc = {
-			ok  => 0,
-			msg => "Authorization required",			
-		};
+    $server->set_active_connection(undef);
 
-	} elsif ( $cmd eq 'new' ) {
-		$rc = $self->create_new_object ($request);
+    $message->write($rc) and return;
 
-	} elsif ( $cmd eq 'exec' ) {
-		$rc = $self->execute_object_method ($request);
+    my $watcher;
+    $watcher = $self->get_server->get_loop->add_io_watcher (
+        fh      => $self->get_sock,
+        poll    => 'w',
+        cb      => sub {
+            $self->get_server->get_loop->del_io_watcher($watcher)
+                if $message->write;
+            1;
+        },
+    );
 
-	} elsif ( $cmd eq 'classes_list' ) {
-		$rc = $self->get_classes_list ($request);
-
-	} elsif ( $cmd eq 'class_info' ) {
-		$rc = $self->get_class_info ($request);
-
-	} elsif ( $cmd eq 'class_info_all' ) {
-		$rc = $self->get_class_info_all ($request);
-
-	} elsif ( $cmd eq 'client_destroy' ) {
-		$rc = $self->object_destroyed_on_client ($request);
-
-	} else {
-		$self->log ("Unknown request command '$cmd'");
-		$rc = {
-			ok  => 0,
-			msg => "Unknown request command '$cmd'",
-		};
-	}
-
-        $server->set_active_connection(undef);
-
-	$message->write($rc) and return;
-
-	my $watcher;
-	$watcher = $self->get_server->get_loop->add_io_watcher (
-		fh	=> $self->get_sock,
-		poll	=> 'w',
-		cb	=> sub {
-		    $self->get_server->get_loop->del_io_watcher($watcher)
-		    	if $message->write;
-		    1;
-		},
-	);
-
-	1;
+    1;
 }
 
 sub authorize_user {
-	my $self = shift;
-	my ($request) = @_;
-	
-	my $user = $request->{user};
-	my $pass = $request->{pass};
-	
-        my $auth_module = $self->get_server->get_auth_module;
-        
+    my $self = shift;
+    my ($request) = @_;
+
+    my $user = $request->{user};
+    my $pass = $request->{pass};
+
+    my $auth_module = $self->get_server->get_auth_module;
+
+    return {
+        ok  => 1,
+        msg => "Not authorization required",
+    } unless $auth_module;
+
+    my $ok = $auth_module->check_credentials ($user, $pass);
+
+    if ( $ok ) {
+        $self->set_auth_user($user);
+        $self->set_is_authenticated(1);
+        $self->log("User '$user' successfully authorized");
         return {
             ok  => 1,
-            msg => "Not authorization required",
-        } unless $auth_module;
-        
-        my $ok = $auth_module->check_credentials ($user, $pass);
-        
-	if ( $ok ) {
-		$self->set_auth_user($user);
-		$self->set_is_authenticated(1);
-		$self->log("User '$user' successfully authorized");
-		return {
-			ok  => 1,
-			msg => "Credentials Ok",
-		};
-	} else {
-		$self->log("Illegal credentials for user '$user'");
-		return {
-			ok  => 0,
-			msg => "Illegal credentials",
-		};
-	}
+            msg => "Credentials Ok",
+        };
+    }
+    else {
+        $self->log("Illegal credentials for user '$user'");
+        return {
+            ok  => 0,
+            msg => "Illegal credentials",
+        };
+    }
 }
 
 sub create_new_object {
-	my $self = shift;
-	my ($request) = @_;
+    my $self = shift;
+    my ($request) = @_;
 
-	# Let's create a new object
-	my $class_method = $request->{method};
-	my $class = $class_method;
-	$class =~ s/::[^:]+$//;
-	$class_method =~ s/^.*:://;
+    # Let's create a new object
+    my $class_method = $request->{method};
+    my $class = $class_method;
+    $class =~ s/::[^:]+$//;
+    $class_method =~ s/^.*:://;
 
-	# check if access to this class/method is allowed
-	if ( not defined $self->get_classes->{$class}->{$class_method} or
-	     $self->get_classes->{$class}->{$class_method} ne '_constructor' ) {
-		$self->log ("Illegal constructor access to $class->$class_method");
-		return {
-			ok  => 0,
-			msg => "Illegal constructor access to $class->$class_method"
-		};
+    # check if access to this class/method is allowed
+    if ( not defined $self->get_classes->{$class}->{$class_method} or
+         $self->get_classes->{$class}->{$class_method} ne '_constructor' ) {
+            $self->log ("Illegal constructor access to $class->$class_method");
+            return {
+                ok  => 0,
+                msg => "Illegal constructor access to $class->$class_method"
+            };
 
-	}
-	
-	# load the class if not done yet
-	$self->load_class($class) if $self->get_server->get_load_modules;
+    }
 
-	# resolve object params
-	$self->resolve_object_params ($request->{params});
+    # load the class if not done yet
+    $self->load_class($class) if $self->get_server->get_load_modules;
 
-	# ok, the class is there, let's execute the method
-	my $object = eval {
-		$class->$class_method (@{$request->{params}})
-	};
+    # resolve object params
+    $self->resolve_object_params ($request->{params});
 
-	# report error
-	if ( $@ ) {
-		$self->log ("Error: can't create object ".
-			    "($class->$class_method): $@");
-		return {
-			ok  => 0,
-			msg => $@,
-		};
-	}
+    # ok, the class is there, let's execute the method
+    my $object = eval {
+            $class->$class_method (@{$request->{params}})
+    };
 
-	# register object
-	$self->get_server->register_object ($object, $class);
-	$self->get_client_oids->{"$object"} = 1;
+    # report error
+    if ( $@ ) {
+        $self->log ("Error: can't create object ".
+                    "($class->$class_method): $@");
+        return {
+            ok  => 0,
+            msg => $@,
+        };
+    }
 
-	# log and return
-	$self->log (5,
-		"Created new object $class->$class_method with oid '$object'",
-	);
+    # register object
+    $self->get_server->register_object ($object, $class);
+    $self->get_client_oids->{"$object"} = 1;
 
-	return {
-		ok  => 1,
-		oid => "$object",
-	};
+    # log and return
+    $self->log (5,
+        "Created new object $class->$class_method with oid '$object'",
+    );
+
+    return {
+        ok  => 1,
+        oid => "$object",
+    };
 }
 
 sub load_class {
-	my $self = shift;
-	my ($class) = @_;
-	
-	my $mtime;
-	my $load_class_info = $self->get_loaded_classes->{$class};
+    my $self = shift;
+    my ($class) = @_;
 
-	if ( not $load_class_info or
-	     ( $self->get_server->get_auto_reload_modules &&
-	       ( $mtime = (stat($load_class_info->{filename}))[9])
-		  > $load_class_info->{mtime} ) ) {
-	
-		if ( not $load_class_info->{filename} ) {
-			my $filename;
-			my $rel_filename = $class;
-			$rel_filename =~ s!::!/!g;
-			$rel_filename .= ".pm";
+    my $mtime;
+    my $load_class_info = $self->get_loaded_classes->{$class};
 
-			foreach my $dir ( @INC ) {
-				$filename = "$dir/$rel_filename", last
-					if -f "$dir/$rel_filename";
-			}
+    if ( not $load_class_info or
+         ( $self->get_server->get_auto_reload_modules &&
+           ( $mtime = (stat($load_class_info->{filename}))[9])
+              > $load_class_info->{mtime} ) )
+    {
+        if ( not $load_class_info->{filename} ) {
+            my $filename;
+            my $rel_filename = $class;
+            $rel_filename =~ s!::!/!g;
+            $rel_filename .= ".pm";
 
-			croak "File for class '$class' not found"
-				if not $filename;
-			
-			$load_class_info->{filename} = $filename;
-			$load_class_info->{mtime} = 0;
-		}
-	
-		$mtime ||= 0;
+            foreach my $dir ( @INC ) {
+                $filename = "$dir/$rel_filename", last
+                        if -f "$dir/$rel_filename";
+            }
 
-		$self->log (3, "Class '$class' ($load_class_info->{filename}) changed on disk. Reloading...")
-			if $mtime > $load_class_info->{mtime};
+            croak "File for class '$class' not found"
+                if not $filename;
 
-		do $load_class_info->{filename};
+            $load_class_info->{filename} = $filename;
+            $load_class_info->{mtime} = 0;
+        }
 
-		if ( $@ ) {
-			$self->log ("Can't load class '$class': $@");
-			$load_class_info->{mtime} = 0;
+        $mtime ||= 0;
 
-			return {
-				ok  => 0,
-				msg => "Can't load class $class: $@",
-			};
+        $self->log (3, "Class '$class' ($load_class_info->{filename}) changed on disk. Reloading...")
+                if $mtime > $load_class_info->{mtime};
 
-		} else {
-			$self->log (3, "Class '$class' successfully loaded");
-			$load_class_info->{mtime} = time;
-		}
-	}
-	
-	$self->log (5, "filename=".$load_class_info->{filename}.
-		    ", mtime=".$load_class_info->{mtime} );
+        do $load_class_info->{filename};
 
-	$self->get_loaded_classes->{$class} ||= $load_class_info;
+        if ( $@ ) {
+            $self->log ("Can't load class '$class': $@");
+            $load_class_info->{mtime} = 0;
 
-	1;
+            return {
+                ok  => 0,
+                msg => "Can't load class $class: $@",
+            };
+        }
+        else {
+            $self->log (3, "Class '$class' successfully loaded");
+            $load_class_info->{mtime} = time;
+        }
+    }
+
+    $self->log (5, "filename=".$load_class_info->{filename}.
+                ", mtime=".$load_class_info->{mtime} );
+
+    $self->get_loaded_classes->{$class} ||= $load_class_info;
+
+    1;
 }
 
 sub execute_object_method {
-	my $self = shift;
-	my ($request) = @_;
+    my $self = shift;
+    my ($request) = @_;
 
-	# Method call of an existent object
-	my $oid = $request->{oid};
-	my $object_entry = $self->get_objects->{$oid};
-	my $method = $request->{method};
+    # Method call of an existent object
+    my $oid = $request->{oid};
+    my $object_entry = $self->get_objects->{$oid};
+    my $method = $request->{method};
 
-	if ( not defined $object_entry ) {
-		# object does not exists
-		$self->log ("Illegal access to unknown object with oid=$oid");
-		return {
-			ok  => 0,
-			msg => "Illegal access to unknown object with oid=$oid"
-		};
+    if ( not defined $object_entry ) {
+        # object does not exists
+        $self->log ("Illegal access to unknown object with oid=$oid");
+        return {
+            ok  => 0,
+            msg => "Illegal access to unknown object with oid=$oid"
+        };
+    }
 
-	}
-	
-	my $class = $object_entry->{class};
-	if ( not defined $self->get_classes->{$class} or
-	     not defined $self->get_classes->{$class}->{$method} ) {
-		# illegal access to this method
-		$self->log ("Illegal access to $class->$method");
-		return {
-			ok  => 0,
-			msg => "Illegal access to $class->$method"
-		};
+    my $class = $object_entry->{class};
+    if ( not defined $self->get_classes->{$class} or
+         not defined $self->get_classes->{$class}->{$method} )
+    {
+        # illegal access to this method
+        $self->log ("Illegal access to $class->$method");
+        return {
+            ok  => 0,
+            msg => "Illegal access to $class->$method"
+        };
+    }
 
-	}
-	
-        my $return_type = $self->get_classes->{$class}->{$method};
-        
-	# (re)load the class if not done yet
-	$self->load_class($class) if $self->get_server->get_load_modules;
+    my $return_type = $self->get_classes->{$class}->{$method};
 
-	# resolve object params
-	$self->resolve_object_params ($request->{params});
+    # (re)load the class if not done yet
+    $self->load_class($class) if $self->get_server->get_load_modules;
 
-	# ok, try executing the method
-	my @rc = eval {
-		$object_entry->{object}->$method (@{$request->{params}})
-	};
+    # resolve object params
+    $self->resolve_object_params ($request->{params});
 
-	# report error
-	if ( $@ ) {
-		$self->log ("Error: can't call '$method' of object ".
-			    "with oid=$oid: $@");
-		return {
-			ok  => 0,
-			msg => "$@",
-		};
-	}
-	
-	# log
-	$self->log (4, "Called method '$method' of object ".
-		       "with oid=$oid");
+    # ok, try executing the method
+    my @rc = eval {
+        $object_entry->{object}->$method (@{$request->{params}})
+    };
 
-        if ( $return_type eq '_object' ) {
-	    # check if objects are returned by this method
-	    # and register them in our internal object table
-	    # (if not already done yet)
-	    my $key;
-	    foreach my $rc ( @rc ) {
-		if ( ref ($rc) and ref ($rc) !~ /ARRAY|HASH|SCALAR/ ) {
-			# returns a single object
-			$self->log (4, "Method returns object: $rc");
-			$key = "$rc";
-			$self->get_client_oids->{$key} = 1;
-			$self->get_server->register_object($rc, ref $rc);
-			$rc = $key;
+    # report error
+    if ( $@ ) {
+        $self->log ("Error: can't call '$method' of object ".
+                    "with oid=$oid: $@");
+        return {
+            ok  => 0,
+            msg => "$@",
+        };
+    }
 
-		} elsif ( ref $rc eq 'ARRAY' ) {
-			# possibly returns a list of objects
-			# make a copy, otherwise the original object references
-			# will be overwritten
-			my @val = @{$rc};
-			$rc = \@val;
-			foreach my $val ( @val ) {
-				if ( ref ($val) and ref ($val) !~ /ARRAY|HASH|SCALAR/ ) {
-					$self->log (4, "Method returns object lref: $val");
-					$key = "$val";
-					$self->get_client_oids->{$key} = 1;
-					$self->get_server->register_object($val, ref $val);
-					$val = $key;
-				}
-			}
-		} elsif ( ref $rc eq 'HASH' ) {
-			# possibly returns a hash of objects
-			# make a copy, otherwise the original object references
-			# will be overwritten
-			my %val = %{$rc};
-			$rc = \%val;
-			foreach my $val ( values %val ) {
-				if ( ref ($val) and ref ($val) !~ /ARRAY|HASH|SCALAR/ ) {
-					$self->log (4, "Method returns object href: $val");
-					$key = "$val";
-					$self->get_client_oids->{$key} = 1;
-					$self->get_server->register_object($val, ref $val);
-					$val = $key;
-				}
-			}
-		}
-	    }
+    # log
+    $self->log (4, "Called method '$method' of object ".
+                   "with oid=$oid");
+
+    if ( $return_type eq '_object' ) {
+        # check if objects are returned by this method
+        # and register them in our internal object table
+        # (if not already done yet)
+        my $key;
+        foreach my $rc ( @rc ) {
+            if ( ref ($rc) and ref ($rc) !~ /ARRAY|HASH|SCALAR/ ) {
+                # returns a single object
+                $self->log (4, "Method returns object: $rc");
+                $key = "$rc";
+                $self->get_client_oids->{$key} = 1;
+                $self->get_server->register_object($rc, ref $rc);
+                $rc = $key;
+
+            }
+            elsif ( ref $rc eq 'ARRAY' ) {
+                # possibly returns a list of objects
+                # make a copy, otherwise the original object references
+                # will be overwritten
+                my @val = @{$rc};
+                $rc = \@val;
+                foreach my $val ( @val ) {
+                    if ( ref ($val) and ref ($val) !~ /ARRAY|HASH|SCALAR/ ) {
+                        $self->log (4, "Method returns object lref: $val");
+                        $key = "$val";
+                        $self->get_client_oids->{$key} = 1;
+                        $self->get_server->register_object($val, ref $val);
+                        $val = $key;
+                    }
+                }
+            }
+            elsif ( ref $rc eq 'HASH' ) {
+                # possibly returns a hash of objects
+                # make a copy, otherwise the original object references
+                # will be overwritten
+                my %val = %{$rc};
+                $rc = \%val;
+                foreach my $val ( values %val ) {
+                    if ( ref ($val) and ref ($val) !~ /ARRAY|HASH|SCALAR/ ) {
+                        $self->log (4, "Method returns object href: $val");
+                        $key = "$val";
+                        $self->get_client_oids->{$key} = 1;
+                        $self->get_server->register_object($val, ref $val);
+                        $val = $key;
+                    }
+                }
+            }
         }
+    }
 
-	# return rc
-	return {
-		ok => 1,
-		rc => \@rc,
-	};
+    # return rc
+    return {
+        ok => 1,
+        rc => \@rc,
+    };
 }
 
 sub object_destroyed_on_client {
-	my $self = shift;
-	my ($request) = @_;
+    my $self = shift;
+    my ($request) = @_;
 
-	$self->log(5, "Object with oid=$request->{oid} destroyed on client");
+    $self->log(5, "Object with oid=$request->{oid} destroyed on client");
 
-	delete $self->get_client_oids->{$request->{oid}};
-	$self->get_server->deregister_object($request->{oid});
+    delete $self->get_client_oids->{$request->{oid}};
+    $self->get_server->deregister_object($request->{oid});
 
-	return {
-		ok => 1
-	};
+    return {
+        ok => 1
+    };
 }
 
 sub get_classes_list {
-	my $self = shift;
-	my ($request) = @_;
+    my $self = shift;
+    my ($request) = @_;
 
-	my @classes = keys %{$self->get_classes};
-	
-	return {
-		ok      => 1,
-		classes => \@classes,
-	}
+    my @classes = keys %{$self->get_classes};
+
+    return {
+        ok      => 1,
+        classes => \@classes,
+    }
 }
 
 sub get_class_info {
-	my $self = shift;
-	my ($request) = @_;
+    my $self = shift;
+    my ($request) = @_;
 
-	my $class = $request->{class};
-	
-	if ( not defined $self->get_classes->{$class} ) {
-		$self->log ("Unknown class '$class'");
-		return {
-			ok  => 0,
-			msg => "Unknown class '$class'"
-		};
-	}
-	
-	$self->log (4, "Class info for '$class' requested");
+    my $class = $request->{class};
 
-	return {
-		ok           => 1,
-		methods      => $self->get_classes->{$class},
-	};
+    if ( not defined $self->get_classes->{$class} ) {
+        $self->log ("Unknown class '$class'");
+        return {
+            ok  => 0,
+            msg => "Unknown class '$class'"
+        };
+    }
+
+    $self->log (4, "Class info for '$class' requested");
+
+    return {
+        ok           => 1,
+        methods      => $self->get_classes->{$class},
+    };
 }
 
 sub get_class_info_all {
-	my $self = shift;
-	my ($request) = @_;
+    my $self = shift;
+    my ($request) = @_;
 
-	return {
-		ok             => 1,
-		class_info_all => $self->get_classes,
-	}
+    return {
+        ok             => 1,
+        class_info_all => $self->get_classes,
+    }
 }
 
 sub resolve_object_params {
-	my $self = shift;
-	my ($params) = @_;
-	
-	my $key;
-	foreach my $par ( @{$params} ) {
-		if ( defined $self->get_classes->{ref($par)} ) {
-			$key = ${$par};
-			$key = "$key";
-			croak "unknown object with key '$key'"
-				if not defined $self->get_objects->{$key};
-			$par = $self->get_objects->{$key}->{object};
-		}
-	}
-	
-	1;
+    my $self = shift;
+    my ($params) = @_;
+
+    my $key;
+    foreach my $par ( @{$params} ) {
+        if ( defined $self->get_classes->{ref($par)} ) {
+            $key = ${$par};
+            $key = "$key";
+            croak "unknown object with key '$key'"
+                    if not defined $self->get_objects->{$key};
+            $par = $self->get_objects->{$key}->{object};
+        }
+    }
+
+    1;
 }
 
 1;

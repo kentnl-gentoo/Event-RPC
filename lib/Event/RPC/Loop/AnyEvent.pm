@@ -1,4 +1,4 @@
-# $Id: Event.pm,v 1.4 2009-04-22 10:53:51 joern Exp $
+# $Id: AnyEvent.pm,v 1.1 2011-03-08 11:50:56 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -8,32 +8,40 @@
 # redistribute it and/or modify it under the same terms as Perl itself.
 #-----------------------------------------------------------------------
 
-package Event::RPC::Loop::Event;
+package Event::RPC::Loop::AnyEvent;
 
 use base qw( Event::RPC::Loop );
 
 use strict;
-use Event;
+
+use AnyEvent;
+
+my %watchers;
+
+sub get_loop_cv                 { shift->{loop_cv}                      }
+sub set_loop_cv                 { shift->{loop_cv}              = $_[1] }
 
 sub add_io_watcher {
     my $self = shift;
     my %par = @_;
     my ($fh, $cb, $desc, $poll) = @par{'fh','cb','desc','poll'};
 
-    return Event->io (
-        fd        => $fh,
-        poll      => $poll,
-        cb        => $cb,
-        desc      => $desc,
-        reentrant => 0,
+    my $watcher = AnyEvent->io (
+      fh   => $fh,
+      poll => $poll,
+      cb   => $cb,
     );
+
+    $watchers{"$watcher"} = $watcher;
+    
+    return $watcher;
 }
 
 sub del_io_watcher {
     my $self = shift;
     my ($watcher) = @_;
 
-    $watcher->cancel;
+    delete $watchers{"$watcher"};
 
     1;
 }
@@ -44,22 +52,22 @@ sub add_timer {
     my  ($interval, $after, $cb, $desc) =
     @par{'interval','after','cb','desc'};
 
-    die "interval and after can't be used together"
-        if $interval && $after;
-
-    return Event->timer (
-        interval        => $interval,
-        after           => $after,
-        cb              => $cb,
-        desc            => $desc,
+    my $timer = AnyEvent->timer (
+        after       => $after,
+        interval    => $interval,
+        cb          => $cb,
     );
+
+    $watchers{"$timer"} = $timer;
+    
+    return $timer;
 }
 
 sub del_timer {
     my $self = shift;
     my ($timer) = @_;
 
-    $timer->cancel;
+    delete $watchers{"$timer"};
 
     1;
 }
@@ -67,7 +75,11 @@ sub del_timer {
 sub enter {
     my $self = shift;
 
-    Event::loop();
+    my $loop_cv = AnyEvent->condvar;
+
+    $self->set_loop_cv($loop_cv);
+
+    $loop_cv->wait;
 
     1;
 }
@@ -75,7 +87,7 @@ sub enter {
 sub leave {
     my $self = shift;
 
-    Event::unloop_all("ok");
+    $self->get_loop_cv->send;
 
     1;
 }
@@ -86,16 +98,16 @@ __END__
 
 =head1 NAME
 
-Event::RPC::Loop::Event - Event mainloop for Event::RPC
+Event::RPC::Loop::AnyEvent - AnyEvent mainloop for Event::RPC
 
 =head1 SYNOPSIS
 
   use Event::RPC::Server;
-  use Event::RPC::Loop::Event;
+  use Event::RPC::Loop::AnyEvent;
   
   my $server = Event::RPC::Server->new (
       ...
-      loop => Event::RPC::Loop::Event->new(),
+      loop => Event::RPC::Loop::AnyEvent->new(),
       ...
   );
 
@@ -103,8 +115,8 @@ Event::RPC::Loop::Event - Event mainloop for Event::RPC
 
 =head1 DESCRIPTION
 
-This modules implements a mainloop using the Event module
-for the Event::RPC::Server module. It implements the interface
+This modules implements a mainloop using AnyEvent for the
+Event::RPC::Server module. It implements the interface
 of Event::RPC::Loop. Please refer to the manpage of
 Event::RPC::Loop for details.
 

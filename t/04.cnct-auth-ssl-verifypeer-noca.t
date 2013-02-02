@@ -15,7 +15,7 @@ if ( $@ ) {
 	plan skip_all => "IO::Socket::SSL required";
 }
 
-plan tests => 6;
+plan tests => 4;
 
 my $PORT = 27811;
 my $AUTH_USER = "foo";
@@ -26,42 +26,32 @@ use_ok('Event::RPC::Client');
 
 # start server in background, without logging
 require "t/Event_RPC_Test_Server.pm";
-Event_RPC_Test_Server->start_server (
+
+my $server_pid = Event_RPC_Test_Server->start_server (
   p => $PORT,
   a => "$AUTH_USER:$AUTH_PASS",
   s => 1,
+  sf => 't/ssl/server-noca.crt',
   S => 1,
   L => $ENV{EVENT_RPC_LOOP},
 );
 
 # create client instance
 my $client = Event::RPC::Client->new (
-  host      => "localhost",
-  port      => $PORT,
-  auth_user => $AUTH_USER,
-  auth_pass => "wrong pass",
-  ssl       => 1,
+  host        => "localhost",
+  port        => $PORT,
+  auth_user   => $AUTH_USER,
+  auth_pass   => Event::RPC->crypt($AUTH_USER,$AUTH_PASS),
+  ssl         => 1,
+  ssl_ca_file => "t/ssl/ca.crt",
 );
 
-# try to connect with wrong password
+# connect to server: should fail due to non signed key
 eval { $client->connect };
-ok($@ ne '', "connection failed with wrong pw");
+ok($@, "ssl connection failed due to unsigned server key");
 
-# now set correct password
-$client->set_auth_pass(Event::RPC->crypt($AUTH_USER,$AUTH_PASS));
-
-# connect to server with correct password
-$client->connect;
-ok(1, "connected");
-
-# create instance of test class over RPC
-my $object = Event_RPC_Test->new (
-	data => "Some test data. " x 6
-);
-ok ((ref $object)=~/Event_RPC_Test/, "object created via RPC");
-
-# disconnect client
-ok ($client->disconnect, "client disconnected");
+# shutdown server process
+ok(kill(2, $server_pid), "killing server process at PID $server_pid");
 
 # wait on server to quit
 wait;

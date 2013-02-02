@@ -1,4 +1,4 @@
-# $Id: Server.pm,v 1.12 2008/06/21 12:47:59 joern Exp $
+# $Id: Server.pm,v 1.14 2011-03-08 11:50:56 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -20,391 +20,392 @@ use strict;
 use IO::Socket::INET;
 use Sys::Hostname;
 
-sub get_host			{ shift->{host}				}
-sub get_port			{ shift->{port}				}
-sub get_name			{ shift->{name}				}
-sub get_loop			{ shift->{loop}				}
-sub get_classes			{ shift->{classes}			}
-sub get_loaded_classes		{ shift->{loaded_classes}		}
-sub get_clients_connected	{ shift->{clients_connected}		}
-sub get_log_clients_connected	{ shift->{log_clients_connected}	}
-sub get_logging_clients		{ shift->{logging_clients}		}
-sub get_logger			{ shift->{logger}			}
-sub get_start_log_listener	{ shift->{start_log_listener}		}
-sub get_objects			{ shift->{objects}			}
-sub get_rpc_socket		{ shift->{rpc_socket}			}
-sub get_ssl			{ shift->{ssl}				}
-sub get_ssl_key_file		{ shift->{ssl_key_file}			}
-sub get_ssl_cert_file		{ shift->{ssl_cert_file}		}
-sub get_ssl_passwd_cb		{ shift->{ssl_passwd_cb}		}
-sub get_auth_required		{ shift->{auth_required}		}
-sub get_auth_passwd_href	{ shift->{auth_passwd_href}		}
+sub get_host                    { shift->{host}                         }
+sub get_port                    { shift->{port}                         }
+sub get_name                    { shift->{name}                         }
+sub get_loop                    { shift->{loop}                         }
+sub get_classes                 { shift->{classes}                      }
+sub get_loaded_classes          { shift->{loaded_classes}               }
+sub get_clients_connected       { shift->{clients_connected}            }
+sub get_log_clients_connected   { shift->{log_clients_connected}        }
+sub get_logging_clients         { shift->{logging_clients}              }
+sub get_logger                  { shift->{logger}                       }
+sub get_start_log_listener      { shift->{start_log_listener}           }
+sub get_objects                 { shift->{objects}                      }
+sub get_rpc_socket              { shift->{rpc_socket}                   }
+sub get_ssl                     { shift->{ssl}                          }
+sub get_ssl_key_file            { shift->{ssl_key_file}                 }
+sub get_ssl_cert_file           { shift->{ssl_cert_file}                }
+sub get_ssl_passwd_cb           { shift->{ssl_passwd_cb}                }
+sub get_auth_required           { shift->{auth_required}                }
+sub get_auth_passwd_href        { shift->{auth_passwd_href}             }
 sub get_auth_module             { shift->{auth_module}                  }
-sub get_listeners_started	{ shift->{listeners_started}		}
-sub get_connection_hook		{ shift->{connection_hook}		}
+sub get_listeners_started       { shift->{listeners_started}            }
+sub get_connection_hook         { shift->{connection_hook}              }
 sub get_load_modules            { shift->{load_modules}                 }
-sub get_auto_reload_modules	{ shift->{auto_reload_modules}		}
+sub get_auto_reload_modules     { shift->{auto_reload_modules}          }
 sub get_active_connection       { shift->{active_connection}            }
 
-sub set_host			{ shift->{host}			= $_[1]	}
-sub set_port			{ shift->{port}			= $_[1]	}
-sub set_name			{ shift->{name}			= $_[1]	}
-sub set_loop			{ shift->{loop}			= $_[1]	}
-sub set_classes			{ shift->{classes}		= $_[1]	}
-sub set_loaded_classes		{ shift->{loaded_classes}	= $_[1]	}
-sub set_clients_connected	{ shift->{clients_connected}	= $_[1]	}
-sub set_log_clients_connected	{ shift->{log_clients_connected}= $_[1]	}
-sub set_logging_clients		{ shift->{logging_clients}	= $_[1]	}
-sub set_logger			{ shift->{logger}		= $_[1]	}
-sub set_start_log_listener	{ shift->{start_log_listener}	= $_[1]	}
-sub set_objects			{ shift->{objects}		= $_[1]	}
-sub set_rpc_socket		{ shift->{rpc_socket}		= $_[1]	}
-sub set_ssl			{ shift->{ssl}			= $_[1]	}
-sub set_ssl_key_file		{ shift->{ssl_key_file}		= $_[1]	}
-sub set_ssl_cert_file		{ shift->{ssl_cert_file}	= $_[1]	}
-sub set_ssl_passwd_cb		{ shift->{ssl_passwd_cb}	= $_[1]	}
-sub set_auth_required		{ shift->{auth_required}	= $_[1]	}
-sub set_auth_passwd_href	{ shift->{auth_passwd_href}	= $_[1]	}
+sub set_host                    { shift->{host}                 = $_[1] }
+sub set_port                    { shift->{port}                 = $_[1] }
+sub set_name                    { shift->{name}                 = $_[1] }
+sub set_loop                    { shift->{loop}                 = $_[1] }
+sub set_classes                 { shift->{classes}              = $_[1] }
+sub set_loaded_classes          { shift->{loaded_classes}       = $_[1] }
+sub set_clients_connected       { shift->{clients_connected}    = $_[1] }
+sub set_log_clients_connected   { shift->{log_clients_connected}= $_[1] }
+sub set_logging_clients         { shift->{logging_clients}      = $_[1] }
+sub set_logger                  { shift->{logger}               = $_[1] }
+sub set_start_log_listener      { shift->{start_log_listener}   = $_[1] }
+sub set_objects                 { shift->{objects}              = $_[1] }
+sub set_rpc_socket              { shift->{rpc_socket}           = $_[1] }
+sub set_ssl                     { shift->{ssl}                  = $_[1] }
+sub set_ssl_key_file            { shift->{ssl_key_file}         = $_[1] }
+sub set_ssl_cert_file           { shift->{ssl_cert_file}        = $_[1] }
+sub set_ssl_passwd_cb           { shift->{ssl_passwd_cb}        = $_[1] }
+sub set_auth_required           { shift->{auth_required}        = $_[1] }
+sub set_auth_passwd_href        { shift->{auth_passwd_href}     = $_[1] }
 sub set_auth_module             { shift->{auth_module}          = $_[1] }
-sub set_listeners_started	{ shift->{listeners_started}	= $_[1]	}
-sub set_connection_hook		{ shift->{connection_hook}	= $_[1]	}
+sub set_listeners_started       { shift->{listeners_started}    = $_[1] }
+sub set_connection_hook         { shift->{connection_hook}      = $_[1] }
 sub set_load_modules            { shift->{load_modules}         = $_[1] }
-sub set_auto_reload_modules	{ shift->{auto_reload_modules}	= $_[1]	}
+sub set_auto_reload_modules     { shift->{auto_reload_modules}  = $_[1] }
 sub set_active_connection       { shift->{active_connection}    = $_[1] }
 
 my $INSTANCE;
 sub instance { $INSTANCE }
 
 sub new {
-	my $class = shift;
-	my %par = @_;
-	my  ($host, $port, $classes, $name, $logger, $start_log_listener) =
-	@par{'host','port','classes','name','logger','start_log_listener'};
-	my  ($ssl, $ssl_key_file, $ssl_cert_file, $ssl_passwd_cb) =
-	@par{'ssl','ssl_key_file','ssl_cert_file','ssl_passwd_cb'};
-	my  ($auth_required, $auth_passwd_href, $auth_module, $loop) =
-	@par{'auth_required','auth_passwd_href','auth_module','loop'};
-	my  ($connection_hook, $auto_reload_modules, $load_modules) =
-	@par{'connection_hook','auto_reload_modules','load_modules'};
+    my $class = shift;
+    my %par = @_;
+    my  ($host, $port, $classes, $name, $logger, $start_log_listener) =
+    @par{'host','port','classes','name','logger','start_log_listener'};
+    my  ($ssl, $ssl_key_file, $ssl_cert_file, $ssl_passwd_cb) =
+    @par{'ssl','ssl_key_file','ssl_cert_file','ssl_passwd_cb'};
+    my  ($auth_required, $auth_passwd_href, $auth_module, $loop) =
+    @par{'auth_required','auth_passwd_href','auth_module','loop'};
+    my  ($connection_hook, $auto_reload_modules, $load_modules) =
+    @par{'connection_hook','auto_reload_modules','load_modules'};
 
-	$name ||= "Event-RPC-Server";
-	
-        #-- for backwards compatibility 'load_modules' defaults to 1
-        if ( !exists $par{load_modules} ) {
-            $load_modules = 1;
+    $name ||= "Event-RPC-Server";
+
+    #-- for backwards compatibility 'load_modules' defaults to 1
+    if ( !exists $par{load_modules} ) {
+        $load_modules = 1;
+    }
+
+    if ( not $loop ) {
+        foreach my $impl ( qw/AnyEvent Event Glib/ ) {
+            $loop = "Event::RPC::Loop::$impl";
+            eval "use $loop";
+            if ( $@ ) {
+                $loop = undef;
+            }
+            else {
+                $loop = $loop->new;
+                last;
+            }
         }
-        
-	if ( not $loop ) {
-		eval {
-		    require Event::RPC::Loop::Event;
-		    $loop = Event::RPC::Loop::Event->new;
-		};
-		if ( $@ ) {
-		    eval {
-			require Event::RPC::Loop::Glib;
-			$loop = Event::RPC::Loop::Glib->new;
-		    };
-		    if ( $@ ) {
-		    	die "It seems neither Event nor Glib are installed";
-		    }
-		}
-	}
+        die "It seems no supported event loop module is installed"
+            unless $loop;
+    }
 
-	my $self = bless {
-		host			=> $host,
-		port			=> $port,
-		name			=> $name,
-		classes			=> $classes,
-		logger			=> $logger,
-		start_log_listener	=> $start_log_listener,
-		loop			=> $loop,
+    my $self = bless {
+        host                    => $host,
+        port                    => $port,
+        name                    => $name,
+        classes                 => $classes,
+        logger                  => $logger,
+        start_log_listener      => $start_log_listener,
+        loop                    => $loop,
 
-		ssl			=> $ssl,
-		ssl_key_file		=> $ssl_key_file,
-		ssl_cert_file		=> $ssl_cert_file,
-		ssl_passwd_cb		=> $ssl_passwd_cb,
+        ssl                     => $ssl,
+        ssl_key_file            => $ssl_key_file,
+        ssl_cert_file           => $ssl_cert_file,
+        ssl_passwd_cb           => $ssl_passwd_cb,
 
-		auth_required		=> $auth_required,
-		auth_passwd_href	=> $auth_passwd_href,
-                auth_module             => $auth_module,
+        auth_required           => $auth_required,
+        auth_passwd_href        => $auth_passwd_href,
+        auth_module             => $auth_module,
 
-                load_modules            => $load_modules,
-		auto_reload_modules	=> $auto_reload_modules,
-		connection_hook		=> $connection_hook,
+        load_modules            => $load_modules,
+        auto_reload_modules     => $auto_reload_modules,
+        connection_hook         => $connection_hook,
 
-		rpc_socket		=> undef,
-		loaded_classes		=> {},
-		objects			=> {},
-		logging_clients		=> {},
-		clients_connected	=> 0,
-		listeners_started	=> 0,
-		log_clients_connected	=> 0,
-                active_connection       => undef,
-	}, $class;
+        rpc_socket              => undef,
+        loaded_classes          => {},
+        objects                 => {},
+        logging_clients         => {},
+        clients_connected       => 0,
+        listeners_started       => 0,
+        log_clients_connected   => 0,
+        active_connection       => undef,
+    }, $class;
 
-	$INSTANCE = $self;
+    $INSTANCE = $self;
 
-	$self->log ($self->get_name." started");
+    $self->log ($self->get_name." started");
 
-	return $self;
+    return $self;
 }
 
 sub DESTROY {
-	my $self = shift;
-	
-	my $rpc_socket = $self->get_rpc_socket;
-	close ($rpc_socket) if $rpc_socket;
-	
-	1;
+    my $self = shift;
+
+    my $rpc_socket = $self->get_rpc_socket;
+    close ($rpc_socket) if $rpc_socket;
+
+    1;
 }
 
 sub setup_listeners {
-	my $self = shift;
+    my $self = shift;
 
-	#-- Listener options
-	my $host      = $self->get_host;
-	my $port      = $self->get_port;
-	my @LocalHost = $host ? ( LocalHost => $host ) : ();
-	$host ||= "*";
+    #-- Listener options
+    my $host      = $self->get_host;
+    my $port      = $self->get_port;
+    my @LocalHost = $host ? ( LocalHost => $host ) : ();
+    $host ||= "*";
 
-	#-- get event loop manager
-	my $loop = $self->get_loop;
-	
-	#-- setup rpc listener
-	my $rpc_socket;
-	if ( $self->get_ssl ) {
-		eval { require IO::Socket::SSL };
-		croak "SSL requested, but IO::Socket::SSL not installed" if $@;
-		croak "ssl_key_file not set"  unless $self->get_ssl_key_file;
-		croak "ssl_cert_file not set" unless $self->get_ssl_cert_file;
+    #-- get event loop manager
+    my $loop = $self->get_loop;
 
-		$rpc_socket = IO::Socket::SSL->new (
-			Listen    	=> SOMAXCONN,
-			@LocalHost,
-			LocalPort 	=> $port,
-			Proto     	=> 'tcp',
-			ReuseAddr       => 1,
-			SSL_verify_mode => 0x00,
-			SSL_key_file	=> $self->get_ssl_key_file,
-			SSL_cert_file	=> $self->get_ssl_cert_file,
-			SSL_passwd_cb	=> $self->get_ssl_passwd_cb,
-		) or die "can't start SSL RPC listener: $IO::Socket::SSL::ERROR";
-	} else {
-		$rpc_socket = IO::Socket::INET->new (
-			Listen    => SOMAXCONN,
-			@LocalHost,
-			LocalPort => $port,
-			Proto     => 'tcp',
-			ReuseAddr => 1,
-		) or die "can't start RPC listener: $!";
-	}
+    #-- setup rpc listener
+    my $rpc_socket;
+    if ( $self->get_ssl ) {
+        eval { require IO::Socket::SSL };
+        croak "SSL requested, but IO::Socket::SSL not installed" if $@;
+        croak "ssl_key_file not set"  unless $self->get_ssl_key_file;
+        croak "ssl_cert_file not set" unless $self->get_ssl_cert_file;
 
-	$self->set_rpc_socket($rpc_socket);
+        $rpc_socket = IO::Socket::SSL->new (
+                Listen          => SOMAXCONN,
+                @LocalHost,
+                LocalPort       => $port,
+                Proto           => 'tcp',
+                ReuseAddr       => 1,
+                SSL_verify_mode => 0x00,
+                SSL_key_file    => $self->get_ssl_key_file,
+                SSL_cert_file   => $self->get_ssl_cert_file,
+                SSL_passwd_cb   => $self->get_ssl_passwd_cb,
+        ) or die "can't start SSL RPC listener: $IO::Socket::SSL::ERROR";
+    }
+    else {
+        $rpc_socket = IO::Socket::INET->new (
+                Listen    => SOMAXCONN,
+                @LocalHost,
+                LocalPort => $port,
+                Proto     => 'tcp',
+                ReuseAddr => 1,
+        ) or die "can't start RPC listener: $!";
+    }
 
-	$loop->add_io_watcher (
-		fh	=> $rpc_socket,
-		poll	=> 'r',
-		cb	=> sub { $self->accept_new_client($rpc_socket); 1 },
-		desc	=> "rpc listener port $port",
-	);
+    $self->set_rpc_socket($rpc_socket);
 
-	if ( $self->get_ssl ) {
-		$self->log ("Started SSL RPC listener on port $host:$port");
-	} else {
-		$self->log ("Started RPC listener on $host:$port");
-	}
+    $loop->add_io_watcher (
+        fh      => $rpc_socket,
+        poll    => 'r',
+        cb      => sub { $self->accept_new_client($rpc_socket); 1 },
+        desc    => "rpc listener port $port",
+    );
 
-	# setup log listener
-	if ( $self->get_start_log_listener ) {
-		my $log_socket = IO::Socket::INET->new (
-			Listen    => SOMAXCONN,
-			LocalPort => $port + 1,
-			@LocalHost,
-			Proto     => 'tcp',
-			ReuseAddr => 1,
-		) or die "can't start log listener: $!";
+    if ( $self->get_ssl ) {
+        $self->log ("Started SSL RPC listener on port $host:$port");
+    } else {
+        $self->log ("Started RPC listener on $host:$port");
+    }
 
-		$loop->add_io_watcher (
-			fh	=> $log_socket,
-			poll	=> 'r',
-			cb	=> sub { $self->accept_new_log_client($log_socket); 1 },
-			desc	=> "log listener port ".($port+1),
-		);
+    # setup log listener
+    if ( $self->get_start_log_listener ) {
+        my $log_socket = IO::Socket::INET->new (
+            Listen    => SOMAXCONN,
+            LocalPort => $port + 1,
+            @LocalHost,
+            Proto     => 'tcp',
+            ReuseAddr => 1,
+        ) or die "can't start log listener: $!";
 
-		$self->log ("Started log listener on $host:".($port+1));
-	}
+        $loop->add_io_watcher (
+            fh      => $log_socket,
+            poll    => 'r',
+            cb      => sub { $self->accept_new_log_client($log_socket); 1 },
+            desc    => "log listener port ".($port+1),
+        );
 
-	$self->set_listeners_started(1);
+        $self->log ("Started log listener on $host:".($port+1));
+    }
 
-	1;
+    $self->set_listeners_started(1);
+
+    1;
 }
 
 sub setup_auth_module {
-        my $self = shift;
-        
-        #-- Exit if no auth is required or setup already
-        return if not $self->get_auth_required;
-        return if     $self->get_auth_module;
-        
-        #-- Default to Event::RPC::AuthPasswdHash
-        require Event::RPC::AuthPasswdHash;
+    my $self = shift;
 
-        #-- Setup an instance
-        my $passwd_href = $self->get_auth_passwd_href;
-        my $auth_module = Event::RPC::AuthPasswdHash->new ($passwd_href);
-        $self->set_auth_module($auth_module);
-        
-        1;
+    #-- Exit if no auth is required or setup already
+    return if not $self->get_auth_required;
+    return if     $self->get_auth_module;
+
+    #-- Default to Event::RPC::AuthPasswdHash
+    require Event::RPC::AuthPasswdHash;
+
+    #-- Setup an instance
+    my $passwd_href = $self->get_auth_passwd_href;
+    my $auth_module = Event::RPC::AuthPasswdHash->new ($passwd_href);
+    $self->set_auth_module($auth_module);
+
+    1;
 }
 
 sub start {
-	my $self = shift;
+    my $self = shift;
 
-	$self->setup_listeners
-		unless $self->get_listeners_started;
+    $self->setup_listeners
+        unless $self->get_listeners_started;
 
-        $self->setup_auth_module;
+    $self->setup_auth_module;
 
-	my $loop = $self->get_loop;
+    my $loop = $self->get_loop;
 
-	$self->log ("Enter main loop using ".ref($loop));
+    $self->log ("Enter main loop using ".ref($loop));
 
-	$loop->enter;
+    $loop->enter;
 
-	$self->log ("Server stopped");
+    $self->log ("Server stopped");
 
-	1;
+    1;
 }
 
 sub stop {
-	my $self = shift;
+    my $self = shift;
 
-	$self->get_loop->leave;
-	
-	1;
+    $self->get_loop->leave;
+
+    1;
 }
 
 sub accept_new_client {
-	my $self = shift;
-	my ($rpc_socket) = @_;
+    my $self = shift;
+    my ($rpc_socket) = @_;
 
-	my $client_socket = $rpc_socket->accept or return;
+    my $client_socket = $rpc_socket->accept or return;
 
-	Event::RPC::Connection->new ($self, $client_socket);
+    Event::RPC::Connection->new ($self, $client_socket);
 
-	$self->set_clients_connected ( 1 + $self->get_clients_connected );
+    $self->set_clients_connected ( 1 + $self->get_clients_connected );
 
-	1;
+    1;
 }
 
 sub accept_new_log_client {
-	my $self = shift;
-	my ($log_socket) = @_;
-	
-	my $client_socket = $log_socket->accept or return;
+    my $self = shift;
+    my ($log_socket) = @_;
 
-	my $log_client =
-		Event::RPC::LogConnection->new($self, $client_socket);
+    my $client_socket = $log_socket->accept or return;
 
-	$self->set_log_clients_connected ( 1 + $self->get_log_clients_connected );
-	$self->get_logging_clients->{$log_client->get_cid} = $log_client;
-	$self->get_logger->add_fh($client_socket)
-		if $self->get_logger;
+    my $log_client =
+        Event::RPC::LogConnection->new($self, $client_socket);
 
-	$self->log(2, "New log client connected");
+    $self->set_log_clients_connected ( 1 + $self->get_log_clients_connected );
+    $self->get_logging_clients->{$log_client->get_cid} = $log_client;
+    $self->get_logger->add_fh($client_socket)
+        if $self->get_logger;
 
-	1;
+    $self->log(2, "New log client connected");
+
+    1;
 }
 
 sub load_class {
-	my $self = shift;
-	my ($class) = @_;
+    my $self = shift;
+    my ($class) = @_;
 
-	Event::RPC::Connection->new ($self)->load_class($class);
+    Event::RPC::Connection->new ($self)->load_class($class);
 
-	return $class;
+    return $class;
 }
 
 sub log {
-	my $self = shift;
-	my $logger = $self->get_logger;
-	return unless $logger;
-	$logger->log(@_);
-	1;
+    my $self = shift;
+    my $logger = $self->get_logger;
+    return unless $logger;
+    $logger->log(@_);
+    1;
 }
 
 sub remove_object {
-	my $self = shift;
-	my ($object) = @_;
-	
-	my $objects = $self->get_objects;
+    my $self = shift;
+    my ($object) = @_;
 
-        if ( not $objects->{"$object"} ) {
-    	    warn "Object $object not registered";
-            return;
-        }
+    my $objects = $self->get_objects;
 
-	delete $objects->{"$object"};
-	
-	$self->log(5, "Object '$object' removed");
+    if ( not $objects->{"$object"} ) {
+        warn "Object $object not registered";
+        return;
+    }
 
-	1;
+    delete $objects->{"$object"};
+
+    $self->log(5, "Object '$object' removed");
+
+    1;
 }
 
 sub register_object {
-	my $self = shift;
-	my ($object, $class) = @_;
-	
-	my $objects = $self->get_objects;
+    my $self = shift;
+    my ($object, $class) = @_;
 
-	my $refcount;
-	if ( $objects->{"$object"} ) {
-		$refcount = ++$objects->{"$object"}->{refcount};
-	} else {
-		$refcount = 1;
-		$objects->{"$object"} = {
-			object   => $object,
-			class    => $class,
-			refcount => 1,
-		};
-	}
-	
-	$self->log(5, "Object '$object' registered. Refcount=$refcount");
-	
-	1;
+    my $objects = $self->get_objects;
+
+    my $refcount;
+    if ( $objects->{"$object"} ) {
+        $refcount = ++$objects->{"$object"}->{refcount};
+    } else {
+        $refcount = 1;
+        $objects->{"$object"} = {
+            object   => $object,
+            class    => $class,
+            refcount => 1,
+        };
+    }
+
+    $self->log(5, "Object '$object' registered. Refcount=$refcount");
+
+    1;
 }
 
 sub deregister_object {
-	my $self = shift;
-	my ($object) = @_;
-	
-	my $objects = $self->get_objects;
+    my $self = shift;
+    my ($object) = @_;
 
-        if ( not $objects->{"$object"} ) {
-    	    warn "Object $object not registered";
-            return;
-        }
+    my $objects = $self->get_objects;
 
-	my $refcount = --$objects->{"$object"}->{refcount};
+    if ( not $objects->{"$object"} ) {
+        warn "Object $object not registered";
+        return;
+    }
 
-	$self->log(5, "Object '$object' deregistered. Refcount=$refcount");
+    my $refcount = --$objects->{"$object"}->{refcount};
 
-	$self->remove_object($object) if $refcount == 0;
-		
-	1;
+    $self->log(5, "Object '$object' deregistered. Refcount=$refcount");
+
+    $self->remove_object($object) if $refcount == 0;
+
+    1;
 }
 
 sub print_object_register {
-	my $self = shift;
-	
-	print "-"x70,"\n";
+    my $self = shift;
 
-	my $objects = $self->get_objects;
-	foreach my $oid ( sort keys %{$objects} ) {
-		print "$oid\t$objects->{$oid}->{refcount}\n";
-	}
-	
-	1;
+    print "-"x70,"\n";
+
+    my $objects = $self->get_objects;
+    foreach my $oid ( sort keys %{$objects} ) {
+        print "$oid\t$objects->{$oid}->{refcount}\n";
+    }
+
+    1;
 }
 
 1;
@@ -425,11 +426,11 @@ Event::RPC::Server - Simple API for event driven RPC servers
       port               => 8888,
       classes            => {
         "My::TestModule" => {
-	  new      => "_constructor",
-	  get_data => 1,
-	  set_data => 1,
-	  clone    => "_object",
-	},
+          new      => "_constructor",
+          get_data => 1,
+          set_data => 1,
+          clone    => "_object",
+        },
       },
 
       #-- Optional arguments
@@ -724,6 +725,7 @@ for this and thus should be able to work with any toolkit.
 This option takes an object of the loop abstraction layer you
 want to use. Currently the following modules are implemented:
 
+  Event::RPC::Loop::AnyEvent  Use the AnyEvent module
   Event::RPC::Loop::Event     Use the Event module
   Event::RPC::Loop::Glib      Use the Glib module
 

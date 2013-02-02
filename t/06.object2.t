@@ -23,6 +23,7 @@ require "t/Event_RPC_Test_Server.pm";
 Event_RPC_Test_Server->start_server (
   p => $PORT,
   S => 1,
+  L => $ENV{EVENT_RPC_LOOP},
 );
 
 # create client instance

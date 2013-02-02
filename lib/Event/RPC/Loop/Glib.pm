@@ -1,4 +1,4 @@
-# $Id: Glib.pm,v 1.3 2006/04/23 08:37:41 joern Exp $
+# $Id: Glib.pm,v 1.4 2009-04-22 10:53:51 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -15,85 +15,86 @@ use base qw( Event::RPC::Loop );
 use strict;
 use Glib;
 
-sub get_glib_main_loop		{ shift->{glib_main_loop}		}
-sub set_glib_main_loop		{ shift->{glib_main_loop}	= $_[1]	}
+sub get_glib_main_loop          { shift->{glib_main_loop}               }
+sub set_glib_main_loop          { shift->{glib_main_loop}       = $_[1] }
 
 sub add_io_watcher {
-	my $self = shift;
-	my %par = @_;
-	my ($fh, $cb, $desc, $poll) = @par{'fh','cb','desc','poll'};
+    my $self = shift;
+    my %par = @_;
+    my ($fh, $cb, $desc, $poll) = @par{'fh','cb','desc','poll'};
 
-	my $cond = $poll eq 'r' ?
-		['G_IO_IN', 'G_IO_HUP']:
-		['G_IO_OUT','G_IO_HUP'];
-	
-	return Glib::IO->add_watch ($fh->fileno, $cond, sub { &$cb(); 1 } );
+    my $cond = $poll eq 'r' ?
+        ['G_IO_IN', 'G_IO_HUP']:
+        ['G_IO_OUT','G_IO_HUP'];
+
+    return Glib::IO->add_watch ($fh->fileno, $cond, sub { &$cb(); 1 } );
 }
 
 sub del_io_watcher {
-	my $self = shift;
-	my ($watcher) = @_;
+    my $self = shift;
+    my ($watcher) = @_;
 
-	Glib::Source->remove ($watcher);
+    Glib::Source->remove ($watcher);
 
-	1;
+    1;
 }
 
 sub add_timer {
-	my $self = shift;
-	my %par = @_;
-	my  ($interval, $after, $cb, $desc) =
-	@par{'interval','after','cb','desc'};
+    my $self = shift;
+    my %par = @_;
+    my  ($interval, $after, $cb, $desc) =
+    @par{'interval','after','cb','desc'};
 
-	die "interval and after can't be used together"
-		if $interval && $after;
+    die "interval and after can't be used together"
+        if $interval && $after;
 
-	if ( $interval ) {
-		return Glib::Timeout->add (
-			$interval * 1000,
-			sub { &$cb(); 1 }
-		);
-	} else {
-		return Glib::Timeout->add (
-			$after * 1000,
-			sub { &$cb(); 0 }
-		);
-	}
+    if ( $interval ) {
+        return Glib::Timeout->add (
+            $interval * 1000,
+            sub { &$cb(); 1 }
+        );
+    }
+    else {
+        return Glib::Timeout->add (
+            $after * 1000,
+            sub { &$cb(); 0 }
+        );
+    }
 
-	1;
+    1;
 }
 
 sub del_timer {
-	my $self = shift;
-	my ($timer) = @_;
-	
-	Glib::Source->remove($timer);
-	
-	1;
+    my $self = shift;
+    my ($timer) = @_;
+
+    Glib::Source->remove($timer);
+
+    1;
 }
 
 sub enter {
-	my $self = shift;
-	
-	Glib->install_exception_handler(sub {
-		print "Event::RPC::Loop::Glib caught an exception: $@\n";
-		1;
-	});
-	
-	my $main_loop = Glib::MainLoop->new;
-	$self->set_glib_main_loop($main_loop);
-	
-	$main_loop->run;
+    my $self = shift;
 
-	1;
+    Glib->install_exception_handler(sub {
+        print "Event::RPC::Loop::Glib caught an exception: $@\n";
+        1;
+    });
+
+    my $main_loop = Glib::MainLoop->new;
+    $self->set_glib_main_loop($main_loop);
+
+    $main_loop->run;
+
+    1;
 }
 
 sub leave {
-	my $self = shift;
-	
-	$self->get_glib_main_loop->quit;
+    my $self = shift;
 
-	1;
+    $self->get_glib_main_loop->quit;
+
+    1;
 }
 
 1;

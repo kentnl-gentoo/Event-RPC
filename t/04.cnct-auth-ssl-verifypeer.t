@@ -1,4 +1,5 @@
 use strict;
+
 use Test::More;
 
 my $depend_modules = 0;
@@ -9,9 +10,16 @@ if ( not $depend_modules ) {
 	plan skip_all => "Neither Event nor Glib installed";
 }
 
-plan tests => 5;
+eval { require IO::Socket::SSL };
+if ( $@ ) {
+	plan skip_all => "IO::Socket::SSL required";
+}
+
+plan tests => 6;
 
 my $PORT = 27811;
+my $AUTH_USER = "foo";
+my $AUTH_PASS = "bar";
 
 # load client class
 use_ok('Event::RPC::Client');
@@ -20,17 +28,30 @@ use_ok('Event::RPC::Client');
 require "t/Event_RPC_Test_Server.pm";
 Event_RPC_Test_Server->start_server (
   p => $PORT,
+  a => "$AUTH_USER:$AUTH_PASS",
+  s => 1,
   S => 1,
   L => $ENV{EVENT_RPC_LOOP},
 );
 
 # create client instance
 my $client = Event::RPC::Client->new (
-  host   => "localhost",
-  port   => $PORT,
+  host        => "localhost",
+  port        => $PORT,
+  auth_user   => $AUTH_USER,
+  auth_pass   => "wrong pass",
+  ssl         => 1,
+  ssl_ca_file => "t/ssl/ca.crt",
 );
 
-# connect to server
+# try to connect with wrong password
+eval { $client->connect };
+ok($@ ne '', "connection failed with wrong pw");
+
+# now set correct password
+$client->set_auth_pass(Event::RPC->crypt($AUTH_USER,$AUTH_PASS));
+
+# connect to server with correct password
 $client->connect;
 ok(1, "connected");
 
@@ -40,10 +61,9 @@ my $object = Event_RPC_Test->new (
 );
 ok ((ref $object)=~/Event_RPC_Test/, "object created via RPC");
 
-# disconnect client (this will also stop the server,
-# because we started it with the -S option)
+# disconnect client
 ok ($client->disconnect, "client disconnected");
 
 # wait on server to quit
 wait;
-ok (1, "stop server");
+ok (1, "server stopped");

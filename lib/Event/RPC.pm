@@ -1,12 +1,12 @@
 package Event::RPC;
 
-$VERSION  = "1.01";
+$VERSION  = "1.03";
 $PROTOCOL = "1.00";
 
 sub crypt {
-	my $class = shift;
-	my ($user, $pass) = @_;
-	return crypt($pass, $user);
+    my $class = shift;
+    my ($user, $pass) = @_;
+    return crypt($pass, $user);
 }
 
 __END__
@@ -42,7 +42,7 @@ Event::RPC - Event based transparent Client/Server RPC framework
 
 =head1 ABSTRACT
 
-Event::RPC supports you in developing Event based networking client/server applications with transparent object/method access from the client to the server. Network communication is optionally encrypted using IO::Socket::SSL. Several event loop managers are supported due to an extensible API. Currently Event and Glib are implemented.
+Event::RPC supports you in developing Event based networking client/server applications with transparent object/method access from the client to the server. Network communication is optionally encrypted using IO::Socket::SSL. Several event loop managers are supported due to an extensible API. Currently Event, Glib and AnyEvent are implemented. The latter lets you use nearly every event loop implementation available for Perl. AnyEvent was invented after Event::RPC was created and thus Event::RPC started using it's own abstraction model.
 
 =head1 DESCRIPTION
 
@@ -64,6 +64,7 @@ Event::RPC needs either one of the following modules on the server
 
   Event
   Glib
+  AnyEvent
 
 They're needed for event handling resp. mainloop implementation.
 If you like to use SSL encryption you need to install
@@ -91,6 +92,15 @@ is just:
   perl Makefile.PL
   make test
   make install
+
+To test a specific Event loop implementation, export the variable
+EVENT_RPC_LOOP:
+
+  export EVENT_RPC_LOOP=Event::RPC::Loop::Glib
+  make test
+
+Otherwise Event::RPC will fallback to the most appropriate module
+installed on your system.
 
 =head1 EXAMPLES
 
@@ -142,7 +152,7 @@ Instead call a method which returns the 'data' member:
 Event::RPC handles methods which return objects. The only
 requirement is that they are declared as a B<Object returner>
 on the server (refer to Event::RPC::Server for details),
-but not if the object is hided inside a deep complex data structure.
+but not if the object is hidden inside a deep complex data structure.
 
 An array or hash ref of objects is Ok, but not more. This
 would require to much expensive runtime data inspection.

@@ -17,7 +17,7 @@ sub start_server {
         #-- client tries to make a log connection to
         #-- verify that the server is up and running
         #-- (20 times with a usleep of 0.25, so the
-        #--  overall timeout is 10 seconds)
+        #--  overall timeout is 5 seconds)
         for ( 1..20 ) {
 	    eval {
 	        Event::RPC::Client->log_connect (
@@ -26,16 +26,16 @@ sub start_server {
 	        );
 	    };
 	    #-- return to client code if connect succeeded
-	    return if !$@;
+	    return $server_pid if !$@;
 	    #-- bail out if the limit is reached
 	    if ( $_ == 20 ) {
-	        die "Couldn't start server";
+	        die "Couldn't start server: $@";
 	    }
 	    #-- wait a quarter second...
 	    select(undef, undef, undef, 0.25);
 	}
         #-- Client is finished here
-        return;
+        return $server_pid;
     }
 
     #-- We're in the server
@@ -52,7 +52,7 @@ sub start_server {
       %ssl_args = (
         ssl => 1,
 	ssl_key_file  => 't/ssl/server.key',
-	ssl_cert_file => 't/ssl/server.crt',
+	ssl_cert_file => ($opts{sf}||'t/ssl/server.crt'),
 	ssl_passwd_cb => sub { 'eventrpc' },
       );
       if ( not -f 't/ssl/server.key' ) {
@@ -116,6 +116,7 @@ sub start_server {
                   get_cid          => 1,
                   get_object_cnt   => 1,
                   get_undef_object => '_object',
+                  async_call_1     => 'object:async:reeintrant'
         	},
         	'Event_RPC_Test2'  => {
         	  new         	   => '_constructor',
