@@ -35,7 +35,6 @@ t/ssl/server.crt
 t/ssl/server.csr
 t/ssl/server.key
 t/ssl/server-noca.crt
-
 examples/server.pl
 examples/client.pl
 examples/Test_class.pm

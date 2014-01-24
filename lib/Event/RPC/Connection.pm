@@ -15,11 +15,13 @@ sub get_objects                 { shift->{server}->{objects}            }
 sub get_client_oids             { shift->{client_oids}                  }
 
 sub get_watcher                 { shift->{watcher}                      }
+sub get_write_watcher           { shift->{write_watcher}                }
 sub get_message                 { shift->{message}                      }
 sub get_is_authenticated        { shift->{is_authenticated}             }
 sub get_auth_user               { shift->{auth_user}                    }
 
 sub set_watcher                 { shift->{watcher}              = $_[1] }
+sub set_write_watcher           { shift->{write_watcher}        = $_[1] }
 sub set_message                 { shift->{message}              = $_[1] }
 sub set_is_authenticated        { shift->{is_authenticated}     = $_[1] }
 sub set_auth_user               { shift->{auth_user}            = $_[1] }
@@ -37,6 +39,7 @@ sub new {
         is_authenticated        => (!$server->get_auth_required),
         auth_user               => "",
         watcher                 => undef,
+        write_watcher           => undef,
         message                 => undef,
         client_oids             => {},
     }, $class;
@@ -63,7 +66,10 @@ sub disconnect {
     my $self = shift;
 
     $self->get_server->get_loop->del_io_watcher($self->get_watcher);
+    $self->get_server->get_loop->del_io_watcher($self->get_write_watcher)
+        if $self->get_write_watcher;
     $self->set_watcher(undef);
+    $self->set_write_watcher(undef);
     close $self->get_sock;
 
     my $server = $self->get_server;
@@ -189,18 +195,22 @@ sub input {
 
     $server->set_active_connection(undef);
 
-    $message->write($rc) and return;
+    $message->set_data($rc);
 
-    my $watcher;
-    $watcher = $self->get_server->get_loop->add_io_watcher (
+    my $watcher = $self->get_server->get_loop->add_io_watcher (
         fh      => $self->get_sock,
         poll    => 'w',
         cb      => sub {
-            $self->get_server->get_loop->del_io_watcher($watcher)
-                if $message->write;
+            if ( $message->write ) {
+                $self->get_server->get_loop->del_io_watcher($self->get_write_watcher)
+                    if $self->get_write_watcher;
+                $self->set_write_watcher();
+            }
             1;
         },
     );
+
+    $self->set_write_watcher($watcher);
 
     1;
 }

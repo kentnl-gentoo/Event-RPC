@@ -2,6 +2,14 @@ $Id: Changes,v 1.19 2013-02-02 11:20:48 joern Exp $
 
 Revision history and release notes for Event::RPC:
 
+1.04 Fri Feb 24, 2014, joern
+    Bugfixes
+    - Under certain infrequently conditions it could
+      happen that the server process blocked when
+      sending a response packet to a client.
+    - Event::RPC::Client failed loading when no
+      IO::Socket::SSL is installed.
+
 1.03 Sat Feb  2, 2013, joern
     Features:
     - Added options 'ssl_ca_file and 'ssl_ca_path' options

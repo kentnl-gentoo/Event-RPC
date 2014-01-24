@@ -1,4 +1,4 @@
-# $Id: Event_RPC_Test.pm,v 1.4 2008/06/21 12:44:13 joern Exp $
+# $Id: Event_RPC_Test.pm,v 1.4 2008-06-21 12:44:13 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
@@ -104,6 +104,35 @@ sub new_object2 {
     my $class = shift;
     my ($data) = @_;
     return Event_RPC_Test2->new($data);
+}
+
+sub get_big_data_struct {
+        my @records;
+
+        for (0..100) {
+            push @records, {
+                a   => 123,
+                b   => 456789,
+                c   => "ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n",
+                d   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 20),
+                e   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 20),
+                f   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 50),
+                g   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 50),
+                x   => $_,
+                h   => {
+                    a   => 123,
+                    b   => 456789,
+                    c   => "ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n",
+                    d   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 20),
+                    e   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 20),
+                    f   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 50),
+                    g   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 50),
+                    x   => $_,
+                },
+            };
+        }
+
+        return \@records;
 }
 
 1;

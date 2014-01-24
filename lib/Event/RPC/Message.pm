@@ -30,8 +30,6 @@ sub new {
     my $class = shift;
     my ($sock) = @_;
 
-    $sock->blocking(1);
-
     my $self = bless {
         sock    => $sock,
         buffer  => undef,
@@ -44,7 +42,10 @@ sub new {
 
 sub read {
     my $self = shift;
+    my ($blocking) = @_;
 
+    $self->get_sock->blocking($blocking?1:0);
+    
     if ( not defined $self->{buffer} ) {
         my $length_packed;
         $DEBUG && print "DEBUG: going to read header...\n";
@@ -94,23 +95,30 @@ sub read_blocked {
     my $self = shift;
 
     my $rc;
-    $rc = $self->read while not defined $rc;
+    $rc = $self->read(1) while not defined $rc;
 
     return $rc;
 }
 
-sub write {
+sub set_data {
     my $self = shift;
     my ($data) = @_;
 
-    $DEBUG && print "DEBUG: going to write...\n";
+    $DEBUG && print "DEBUG: Message->set_data($data)\n";
 
-    if ( not defined $self->{buffer} ) {
-        my $packed = Storable::nfreeze ($data);
-        $self->{buffer} = pack("N", length($packed)).$packed;
-        $self->{length} = length($self->{buffer});
-        $self->{written} = 0;
-    }
+    my $packed = Storable::nfreeze ($data);
+    $self->{buffer} = pack("N", length($packed)).$packed;
+    $self->{length} = length($self->{buffer});
+    $self->{written} = 0;
+
+    1;
+}
+
+sub write {
+    my $self = shift;
+    my ($blocking) = @_;
+
+    $self->get_sock->blocking($blocking?1:0);
 
     my $rc = syswrite (
         $self->get_sock,
@@ -141,10 +149,10 @@ sub write_blocked {
     my $self = shift;
     my ($data) = @_;
 
-    $self->write($data) and return;
+    $self->set_data($data);
 
     my $finished = 0;
-    $finished = $self->write while not $finished;
+    $finished = $self->write(1) while not $finished;
 
     1;
 }

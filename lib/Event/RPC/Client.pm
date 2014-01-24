@@ -101,24 +101,24 @@ sub connect {
     my $port    = $self->get_port;
     my $timeout = $self->get_timeout;
 
-    if ($ssl) {
-        eval { use IO::Socket::SSL };
+    if ( $ssl ) {
+        eval { require IO::Socket::SSL };
         croak "SSL requested, but IO::Socket::SSL not installed" if $@;
     }
 
     my $sock;
-    if ($ssl) {
+    if ( $ssl ) {
         my @verify_opts;
         if ( $self->get_ssl_ca_file or $self->get_ssl_ca_path ) {
             push @verify_opts, (
-                SSL_verify_mode => SSL_VERIFY_PEER,
+                SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_PEER(),
                 SSL_ca_file     => $self->get_ssl_ca_file,
                 SSL_ca_path     => $self->get_ssl_ca_path,
             );
         }
         else {
             push @verify_opts, (
-                SSL_verify_mode => SSL_VERIFY_NONE,
+                SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE(),
             );
         }
 
@@ -152,7 +152,7 @@ sub connect {
     my $auth_user = $self->get_auth_user;
     my $auth_pass = $self->get_auth_pass;
 
-    if ($auth_user) {
+    if ( $auth_user ) {
         my $rc = $self->send_request(
             {   cmd  => 'auth',
                 user => $auth_user,

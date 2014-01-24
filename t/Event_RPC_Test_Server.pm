@@ -116,6 +116,7 @@ sub start_server {
                   get_cid          => 1,
                   get_object_cnt   => 1,
                   get_undef_object => '_object',
+                  get_big_data_struct => 1,
                   async_call_1     => 'object:async:reeintrant'
         	},
         	'Event_RPC_Test2'  => {
