@@ -560,6 +560,8 @@ sub resolve_object_params {
 
 __END__
 
+=encoding latin1
+
 =head1 NAME
 
 Event::RPC::Connection - Represents a RPC connection

@@ -70,6 +70,8 @@ sub input {
 
 __END__
 
+=encoding latin1
+
 =head1 NAME
 
 Event::RPC::LogConnection - Represents a logging connection

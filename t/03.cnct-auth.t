@@ -12,7 +12,9 @@ if ( not $depend_modules ) {
 
 plan tests => 6;
 
-my $PORT = 27811;
+require "t/Event_RPC_Test_Server.pm";
+my $PORT = Event_RPC_Test_Server->port;
+
 my $AUTH_USER = "foo";
 my $AUTH_PASS = "bar";
 
@@ -20,7 +22,6 @@ my $AUTH_PASS = "bar";
 use_ok('Event::RPC::Client');
 
 # start server in background, without logging
-require "t/Event_RPC_Test_Server.pm";
 Event_RPC_Test_Server->start_server (
   p => $PORT,
   a => "$AUTH_USER:$AUTH_PASS",

@@ -1,6 +1,6 @@
 package Event::RPC;
 
-$VERSION  = "1.04";
+$VERSION  = "1.05";
 $PROTOCOL = "1.00";
 
 sub crypt {
@@ -10,6 +10,8 @@ sub crypt {
 }
 
 __END__
+
+=encoding latin1
 
 =head1 NAME
 

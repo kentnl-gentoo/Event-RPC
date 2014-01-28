@@ -1,4 +1,4 @@
-# $Id: Loop.pm,v 1.4 2009-04-22 10:53:51 joern Exp $
+# $Id: Loop.pm,v 1.5 2014-01-28 15:37:33 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -18,6 +18,8 @@ sub new {
 1;
 
 __END__
+
+=encoding latin1
 
 =head1 NAME
 

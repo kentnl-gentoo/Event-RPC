@@ -1,4 +1,4 @@
-# $Id: Logger.pm,v 1.6 2009-04-22 10:53:51 joern Exp $
+# $Id: Logger.pm,v 1.7 2014-01-28 15:37:33 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -124,6 +124,8 @@ sub remove_fh {
 1;
 
 __END__
+
+=encoding latin1
 
 =head1 NAME
 

@@ -1,4 +1,4 @@
-# $Id: Server.pm,v 1.14 2011-03-08 11:50:56 joern Exp $
+# $Id: Server.pm,v 1.15 2014-01-28 15:40:10 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -74,6 +74,16 @@ sub set_active_connection       { shift->{active_connection}    = $_[1] }
 
 my $INSTANCE;
 sub instance { $INSTANCE }
+
+sub get_max_packet_size {
+    return Event::RPC::Message->get_max_packet_size;
+}
+
+sub set_max_packet_size {
+    my $class = shift;
+    my ($value) = @_;
+    Event::RPC::Message->set_max_packet_size($value);
+}
 
 sub new {
     my $class = shift;
@@ -412,6 +422,8 @@ sub print_object_register {
 
 __END__
 
+=encoding latin1
+
 =head1 NAME
 
 Event::RPC::Server - Simple API for event driven RPC servers
@@ -455,6 +467,7 @@ Event::RPC::Server - Simple API for event driven RPC servers
       connection_hook     => sub { ... },
   );
 
+  $server->set_max_packet_size(2*1024*1024*1024);
   $server->start;
 
   # and later from inside your server implementation
@@ -514,7 +527,7 @@ This is a hash ref with the following structure:
     ...
   },
 
-Each class which should be accessable for clients needs to
+Each class which should be accessible for clients needs to
 be listed here at the first level, assigned a hash of methods
 allowed to be called. Event::RPC disuinguishes three types
 of methods by classifying their return value:
@@ -756,7 +769,7 @@ and manage the main loop stuff on your own.
 
 By default the network listeners are bound to all interfaces
 in the system. Use the host option to bind to a specific
-interface, e.g. "localhost" if you efficently want to prevent
+interface, e.g. "localhost" if you efficiently want to prevent
 network clients from accessing your server.
 
 =item B<load_modules>
@@ -779,6 +792,8 @@ This callback is called on each connection / disconnection
 with two arguments: the Event::RPC::Connection object and
 a string containing either "connect" or "disconnect" depending
 what's currently happening with this connection.
+
+=back
 
 =head1 METHODS
 
@@ -826,6 +841,22 @@ This returns the currently active Event::RPC::Connection object
 representing the connection resp. the client which currently 
 requests method invocation. This is undef if no client call
 is active.
+
+=item $rpc_client->B<set_max_packet_size> ( $bytes )
+
+By default Event::RPC does not handle network packages which
+exceed 2 GB in size (was 4 MB with version 1.04 and earlier).
+
+You can change this value using this method at any time,
+but 4 GB is the maximum. An attempt of the server to send a
+bigger packet will be aborted and reported as an exception
+on the client and logged as an error message on the server.
+
+Note: you have to set the same value on client and server side!
+
+=item $rpc_client->B<get_max_packet_size>
+
+Returns the currently active max packet size.
 
 =back
 

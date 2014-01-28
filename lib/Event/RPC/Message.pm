@@ -1,4 +1,4 @@
-# $Id: Message.pm,v 1.7 2009-04-22 10:53:51 joern Exp $
+# $Id: Message.pm,v 1.9 2014-01-28 15:40:10 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -15,6 +15,7 @@ use strict;
 use Storable;
 
 my $DEBUG = 0;
+my $MAX_PACKET_SIZE = 2*1024*1024*1024;
 
 sub get_sock                    { shift->{sock}                         }
 
@@ -25,6 +26,16 @@ sub get_written                 { shift->{written}                      }
 sub set_buffer                  { shift->{buffer}               = $_[1] }
 sub set_length                  { shift->{length}               = $_[1] }
 sub set_written                 { shift->{written}              = $_[1] }
+
+sub get_max_packet_size {
+    return $MAX_PACKET_SIZE;
+}
+
+sub set_max_packet_size {
+    my $class = shift;
+    my ($value) = @_;
+    $MAX_PACKET_SIZE = $value;
+}
 
 sub new {
     my $class = shift;
@@ -54,8 +65,8 @@ sub read {
         die "DISCONNECTED" if !(defined $rc) || $rc == 0;
         $self->{length} = unpack("N", $length_packed);
         $DEBUG && print "DEBUG: packet size=$self->{length}\n";
-        die "Incoming message too big"
-                if $self->{length} > 4194304;
+        die "Incoming message size exceeds limit of $MAX_PACKET_SIZE bytes"
+                if $self->{length} > $MAX_PACKET_SIZE;
     }
 
     my $buffer_length = length($self->{buffer}||'');
@@ -107,6 +118,13 @@ sub set_data {
     $DEBUG && print "DEBUG: Message->set_data($data)\n";
 
     my $packed = Storable::nfreeze ($data);
+
+    if ( length($packed) > $MAX_PACKET_SIZE ) {
+        Event::RPC::Server->instance->log("ERROR: response packet exceeds limit of $MAX_PACKET_SIZE bytes");
+        $data = { rc => 0, msg => "Response packed exceeds limit of $MAX_PACKET_SIZE bytes" };
+        $packed = Storable::nfreeze ($data);
+    }
+
     $self->{buffer} = pack("N", length($packed)).$packed;
     $self->{length} = length($self->{buffer});
     $self->{written} = 0;
@@ -160,6 +178,8 @@ sub write_blocked {
 1;
 
 __END__
+
+=encoding latin1
 
 =head1 NAME
 

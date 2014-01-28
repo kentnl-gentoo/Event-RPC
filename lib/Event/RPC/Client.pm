@@ -1,4 +1,4 @@
-# $Id: Client.pm,v 1.18 2013-02-02 11:24:31 joern Exp $
+# $Id: Client.pm,v 1.20 2014-01-28 15:40:10 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -55,6 +55,16 @@ sub set_connected               { shift->{connected}            = $_[1] }
 sub set_server                  { shift->{server}               = $_[1] }
 sub set_server_version          { shift->{server_version}       = $_[1] }
 sub set_server_protocol         { shift->{server_protocol}      = $_[1] }
+
+sub get_max_packet_size {
+    return Event::RPC::Message->get_max_packet_size;
+}
+
+sub set_max_packet_size {
+    my $class = shift;
+    my ($value) = @_;
+    Event::RPC::Message->set_max_packet_size($value);
+}
 
 sub new {
     my $class = shift;
@@ -437,6 +447,8 @@ sub send_request {
 
 __END__
 
+=encoding latin1
+
 =head1 NAME
 
 Event::RPC::Client - Client API to connect to Event::RPC Servers
@@ -471,10 +483,11 @@ Event::RPC::Client - Client API to connect to Event::RPC Servers
     },
   );
 
+  $rpc_client->set_max_packet_size(2*1024*1024*1024);
   $rpc_client->connect;
   
-  #-- And now use classes and methods the server
-  #-- allows to access via RPC, here My::TestModule
+  #-- And now use classes and methods to which the
+  #-- server allows access via RPC, here My::TestModule
   #-- from the Event::RPC::Server manpage SYNPOSIS.
   my $obj = My::TestModule->new( data => "foobar" );
   print "obj says hello: ".$obj->hello."\n";
@@ -684,6 +697,22 @@ are invalid or something like this.
 Closes the connection to the server. You may omit explicit disconnecting
 since it's done automatically once the Event::RPC::Client object gets
 destroyed.
+
+=item $rpc_client->B<set_max_packet_size> ( $bytes )
+
+By default Event::RPC does not handle network packages which
+exceed 2 GB in size (was 4 MB with version 1.04 and earlier).
+
+You can change this value using this method at any time,
+but 4 GB is the maximum. An attempt of the server to send a
+bigger packet will be aborted and reported as an exception
+on the client and logged as an error message on the server.
+
+Note: you have to set the same value on client and server side!
+
+=item $rpc_client->B<get_max_packet_size>
+
+Returns the currently active max packet size.
 
 =back
 

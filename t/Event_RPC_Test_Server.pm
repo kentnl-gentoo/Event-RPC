@@ -3,6 +3,7 @@ package Event_RPC_Test_Server;
 use strict;
 
 use lib qw(t);
+use Fcntl qw( :flock );
 
 sub start_server {
     my $class = shift;
@@ -137,11 +138,36 @@ sub start_server {
       },
     );
 
+    $server->set_max_packet_size($opts{M}) if $opts{M};
+
     #-- Start the server resp. the Event loop.
     $server->start;
     
     #-- Exit the program
     exit;
+}
+
+sub port {
+    my $file = "port.txt";
+
+    open (my $fh, "+>>", $file) or die "Can't open '$file': $!";
+    flock($fh, LOCK_EX) or die "Cannot lock $file: $!";
+
+    seek $fh, 0, 0;
+
+    my $port = <$fh> || 27808;
+    chomp $port;
+
+    truncate $fh, 0;
+
+    $port += 2;
+
+    $port = 27810 if $port > 65000;
+
+    print $fh "$port\n";
+    close $fh;
+    
+    return $port;
 }
 
 1;

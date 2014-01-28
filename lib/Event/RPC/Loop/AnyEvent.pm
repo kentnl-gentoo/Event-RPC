@@ -1,4 +1,4 @@
-# $Id: AnyEvent.pm,v 1.1 2011-03-08 11:50:56 joern Exp $
+# $Id: AnyEvent.pm,v 1.2 2014-01-28 15:37:33 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -95,6 +95,8 @@ sub leave {
 1;
 
 __END__
+
+=encoding latin1
 
 =head1 NAME
 
