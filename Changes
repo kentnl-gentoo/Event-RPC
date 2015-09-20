@@ -1,6 +1,17 @@
-$Id: Changes,v 1.21 2014-01-28 15:40:22 joern Exp $
-
 Revision history and release notes for Event::RPC:
+
+1.06 Sun Sep 20, 2015, joern
+    Features:
+    - New 'ssl_opts' attribute for Server and Client to
+      give more control over the SSL connection.
+
+    Bugfixes:
+    - Some tests failed due to stronger hostname verifcation
+      in IO::Socket:SSL >= 2.017. Fixed that by adding
+      proper certificates with cn 'localhost' and a test
+      which verifies the failing connection with wrong
+      hostname. Thanks to ppisar[...]redhat.com. This
+      fixes rt #106874.
 
 1.05 Tue Feb 28, 2014, joern
     Features:

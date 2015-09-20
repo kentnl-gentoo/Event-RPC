@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 
-# $Id: client.pl,v 1.4 2005/12/18 14:01:13 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.

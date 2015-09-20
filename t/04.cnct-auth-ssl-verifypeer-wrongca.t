@@ -51,7 +51,7 @@ ok($@, "ssl connection failed with wrong ca");
 
 # now correct ca to shut down server
 $client->set_ssl_ca_file("t/ssl/ca.crt");
-ok($client->connect, "connect without ssl");
+ok($client->connect, "connect with corract ca");
 
 # disconnect client
 ok ($client->disconnect, "client disconnected");

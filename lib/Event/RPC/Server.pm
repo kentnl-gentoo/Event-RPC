@@ -1,4 +1,3 @@
-# $Id: Server.pm,v 1.15 2014-01-28 15:40:10 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -37,6 +36,7 @@ sub get_ssl                     { shift->{ssl}                          }
 sub get_ssl_key_file            { shift->{ssl_key_file}                 }
 sub get_ssl_cert_file           { shift->{ssl_cert_file}                }
 sub get_ssl_passwd_cb           { shift->{ssl_passwd_cb}                }
+sub get_ssl_opts                { shift->{ssl_opts}                     }
 sub get_auth_required           { shift->{auth_required}                }
 sub get_auth_passwd_href        { shift->{auth_passwd_href}             }
 sub get_auth_module             { shift->{auth_module}                  }
@@ -63,6 +63,7 @@ sub set_ssl                     { shift->{ssl}                  = $_[1] }
 sub set_ssl_key_file            { shift->{ssl_key_file}         = $_[1] }
 sub set_ssl_cert_file           { shift->{ssl_cert_file}        = $_[1] }
 sub set_ssl_passwd_cb           { shift->{ssl_passwd_cb}        = $_[1] }
+sub set_ssl_opts                { shift->{ssl_opts}             = $_[1] }
 sub set_auth_required           { shift->{auth_required}        = $_[1] }
 sub set_auth_passwd_href        { shift->{auth_passwd_href}     = $_[1] }
 sub set_auth_module             { shift->{auth_module}          = $_[1] }
@@ -90,8 +91,8 @@ sub new {
     my %par = @_;
     my  ($host, $port, $classes, $name, $logger, $start_log_listener) =
     @par{'host','port','classes','name','logger','start_log_listener'};
-    my  ($ssl, $ssl_key_file, $ssl_cert_file, $ssl_passwd_cb) =
-    @par{'ssl','ssl_key_file','ssl_cert_file','ssl_passwd_cb'};
+    my  ($ssl, $ssl_key_file, $ssl_cert_file, $ssl_passwd_cb, $ssl_opts) =
+    @par{'ssl','ssl_key_file','ssl_cert_file','ssl_passwd_cb','ssl_opts'};
     my  ($auth_required, $auth_passwd_href, $auth_module, $loop) =
     @par{'auth_required','auth_passwd_href','auth_module','loop'};
     my  ($connection_hook, $auto_reload_modules, $load_modules) =
@@ -133,6 +134,7 @@ sub new {
         ssl_key_file            => $ssl_key_file,
         ssl_cert_file           => $ssl_cert_file,
         ssl_passwd_cb           => $ssl_passwd_cb,
+        ssl_opts                => $ssl_opts,
 
         auth_required           => $auth_required,
         auth_passwd_href        => $auth_passwd_href,
@@ -188,25 +190,27 @@ sub setup_listeners {
         croak "ssl_key_file not set"  unless $self->get_ssl_key_file;
         croak "ssl_cert_file not set" unless $self->get_ssl_cert_file;
 
+        my $ssl_opts = $self->get_ssl_opts;
+
         $rpc_socket = IO::Socket::SSL->new (
-                Listen          => SOMAXCONN,
-                @LocalHost,
-                LocalPort       => $port,
-                Proto           => 'tcp',
-                ReuseAddr       => 1,
-                SSL_verify_mode => 0x00,
-                SSL_key_file    => $self->get_ssl_key_file,
-                SSL_cert_file   => $self->get_ssl_cert_file,
-                SSL_passwd_cb   => $self->get_ssl_passwd_cb,
+            Listen          => SOMAXCONN,
+            @LocalHost,
+            LocalPort       => $port,
+            Proto           => 'tcp',
+            ReuseAddr       => 1,
+            SSL_key_file    => $self->get_ssl_key_file,
+            SSL_cert_file   => $self->get_ssl_cert_file,
+            SSL_passwd_cb   => $self->get_ssl_passwd_cb,
+            ($ssl_opts?%{$ssl_opts}:()),
         ) or die "can't start SSL RPC listener: $IO::Socket::SSL::ERROR";
     }
     else {
         $rpc_socket = IO::Socket::INET->new (
-                Listen    => SOMAXCONN,
-                @LocalHost,
-                LocalPort => $port,
-                Proto     => 'tcp',
-                ReuseAddr => 1,
+            Listen    => SOMAXCONN,
+            @LocalHost,
+            LocalPort => $port,
+            Proto     => 'tcp',
+            ReuseAddr => 1,
         ) or die "can't start RPC listener: $!";
     }
 
@@ -454,6 +458,7 @@ Event::RPC::Server - Simple API for event driven RPC servers
       ssl_key_file        => "server.key",
       ssl_cert_file       => "server.crt",
       ssl_passwd_cb       => sub { "topsecret" },
+      ssl_opts            => { ... },
 
       auth_required       => 1,
       auth_passwd_href    => { $user => Event::RPC->crypt($user,$pass) },
@@ -619,6 +624,12 @@ password, e.g.
 
 But note: having the password in plaintext in your program code is
 insecure!
+
+=item B<ssl_opts>
+
+This optional parameter takes a hash reference of options
+passed to IO::Socket::SSL->new(...) to have more control
+over the server SSL listener. 
 
 =back
 

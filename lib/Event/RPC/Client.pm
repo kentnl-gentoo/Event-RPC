@@ -1,4 +1,3 @@
-# $Id: Client.pm,v 1.20 2014-01-28 15:40:10 joern Exp $
 
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
@@ -31,6 +30,7 @@ sub get_error_cb                { shift->{error_cb}                     }
 sub get_ssl                     { shift->{ssl}                          }
 sub get_ssl_ca_file             { shift->{ssl_ca_file}                  }
 sub get_ssl_ca_path             { shift->{ssl_ca_path}                  }
+sub get_ssl_opts                { shift->{ssl_opts}                     }
 sub get_auth_user               { shift->{auth_user}                    }
 sub get_auth_pass               { shift->{auth_pass}                    }
 sub get_connected               { shift->{connected}                    }
@@ -49,6 +49,7 @@ sub set_error_cb                { shift->{error_cb}             = $_[1] }
 sub set_ssl                     { shift->{ssl}                  = $_[1] }
 sub set_ssl_ca_file             { shift->{ssl_ca_file}          = $_[1] }
 sub set_ssl_ca_path             { shift->{ssl_ca_path}          = $_[1] }
+sub set_ssl_opts                { shift->{ssl_opts}             = $_[1] }
 sub set_auth_user               { shift->{auth_user}            = $_[1] }
 sub set_auth_pass               { shift->{auth_pass}            = $_[1] }
 sub set_connected               { shift->{connected}            = $_[1] }
@@ -71,8 +72,8 @@ sub new {
     my %par   = @_;
     my  ($server, $host, $port, $classes, $class_map, $error_cb, $timeout) =
     @par{'server','host','port','classes','class_map','error_cb','timeout'};
-    my  ($ssl, $ssl_ca_file, $auth_user, $auth_pass) =
-    @par{'ssl','ssl_ca_file','auth_user','auth_pass'};
+    my  ($ssl, $ssl_ca_file, $ssl_opts, $auth_user, $auth_pass) =
+    @par{'ssl','ssl_ca_file','ssl_opts','auth_user','auth_pass'};
 
     $server ||= '';
     $host   ||= '';
@@ -91,6 +92,7 @@ sub new {
         class_map      => $class_map,
         ssl            => $ssl,
         ssl_ca_file    => $ssl_ca_file,
+        ssl_opts       => $ssl_opts,
         auth_user      => $auth_user,
         auth_pass      => $auth_pass,
         error_cb       => $error_cb,
@@ -132,13 +134,16 @@ sub connect {
             );
         }
 
+        my $ssl_opts = $self->get_ssl_opts;
+
         $sock = IO::Socket::SSL->new(
             Proto    => 'tcp',
             PeerPort => $port,
             PeerAddr => $server,
             Type     => SOCK_STREAM,
             Timeout  => $timeout,
-            @verify_opts
+            @verify_opts,
+            ($ssl_opts?%{$ssl_opts}:()),
         )
         or croak "Can't open SSL connection to $server:$port: $IO::Socket::SSL::ERROR";
     }
@@ -469,6 +474,7 @@ Event::RPC::Client - Client API to connect to Event::RPC Servers
     ssl         => 1,
     ssl_ca_file => "some/ca.crt",
     ssl_ca_path => "some/ca/dir",
+    ssl_opts    => { SSL_verifycn_name => 'server-hostname' },
 
     timeout     => 10,
 
@@ -622,6 +628,16 @@ Path to the the Certificate Authority's certificate file
 Path of a directory containing several trusted certificates with
 a proper index. Please refer to the OpenSSL documentation for
 details about setting up such a directory.
+
+=item B<ssl_opts>
+
+This optional parameter takes a hash reference of options
+passed to IO::Socket::SSL->new(...) to have more control
+over the SSL connection. For example you can set the
+'SSL_verifycn_name' here if the server certificate common
+name doesn't match to the hostname you use to resolve
+the server IP or use you have to use a static server IP
+address or something like that. 
 
 =back
 
