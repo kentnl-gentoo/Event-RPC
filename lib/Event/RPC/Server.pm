@@ -1,4 +1,3 @@
-
 #-----------------------------------------------------------------------
 # Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
 # All Rights Reserved. See file COPYRIGHT for details.
@@ -24,6 +23,7 @@ sub get_port                    { shift->{port}                         }
 sub get_name                    { shift->{name}                         }
 sub get_loop                    { shift->{loop}                         }
 sub get_classes                 { shift->{classes}                      }
+sub get_singleton_classes       { shift->{singleton_classes}            }
 sub get_loaded_classes          { shift->{loaded_classes}               }
 sub get_clients_connected       { shift->{clients_connected}            }
 sub get_log_clients_connected   { shift->{log_clients_connected}        }
@@ -51,6 +51,7 @@ sub set_port                    { shift->{port}                 = $_[1] }
 sub set_name                    { shift->{name}                 = $_[1] }
 sub set_loop                    { shift->{loop}                 = $_[1] }
 sub set_classes                 { shift->{classes}              = $_[1] }
+sub set_singleton_classes       { shift->{singleton_classes}    = $_[1] }
 sub set_loaded_classes          { shift->{loaded_classes}       = $_[1] }
 sub set_clients_connected       { shift->{clients_connected}    = $_[1] }
 sub set_log_clients_connected   { shift->{log_clients_connected}= $_[1] }
@@ -126,6 +127,7 @@ sub new {
         port                    => $port,
         name                    => $name,
         classes                 => $classes,
+        singleton_classes       => {},
         logger                  => $logger,
         start_log_listener      => $start_log_listener,
         loop                    => $loop,
@@ -249,6 +251,8 @@ sub setup_listeners {
         $self->log ("Started log listener on $host:".($port+1));
     }
 
+    $self->determine_singletons;
+
     $self->set_listeners_started(1);
 
     1;
@@ -295,6 +299,28 @@ sub stop {
     my $self = shift;
 
     $self->get_loop->leave;
+
+    1;
+}
+
+sub determine_singletons {
+    my $self = shift;
+
+    my $classes = $self->get_classes;
+    my $singleton_classes = $self->get_singleton_classes;
+
+    foreach my $class ( keys %{$classes} ) {
+        foreach my $method ( keys %{$classes->{$class}} ) {
+            # check for singleton returner
+            if ( $classes->{$class}->{$method} eq '_singleton' ) {
+                # change to constructor
+                $classes->{$class}->{$method} = '_constructor';
+                # track that this class is a singleton
+                $singleton_classes->{$class} = 1;
+                last;
+            }
+        }
+    }
 
     1;
 }
@@ -401,6 +427,13 @@ sub deregister_object {
     }
 
     my $refcount = --$objects->{"$object"}->{refcount};
+
+    my ($class) = split(/=/, $object);
+    if ( $self->get_singleton_classes->{$class} ) {
+        # never deregister singletons
+        $self->log(4, "Skip deregistration of singleton '$object'");
+        return;
+    }
 
     $self->log(5, "Object '$object' deregistered. Refcount=$refcount");
 
@@ -544,6 +577,12 @@ of methods by classifying their return value:
 A constructor method creates a new object of the corresponding class
 and returns it. You need to assign the string "_constructor" to
 the method entry to mark a method as a constructor.
+
+=item B<Singleton constructors>
+
+For singleton classes the method which returns the singleton
+instance should be declared with "_singleton". This way the server
+takes care that references get never destroyed on server side.
 
 =item B<Simple methods>
 

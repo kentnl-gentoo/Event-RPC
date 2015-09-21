@@ -25,4 +25,4 @@ requires:
   Net::SSLeay: '0'
   Storable: '0'
   Test::More: '0'
-version: '1.06'
+version: '1.07'

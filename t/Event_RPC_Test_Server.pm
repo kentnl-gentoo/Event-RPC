@@ -20,21 +20,21 @@ sub start_server {
         #-- (20 times with a usleep of 0.25, so the
         #--  overall timeout is 5 seconds)
         for ( 1..20 ) {
-            eval {
-                Event::RPC::Client->log_connect (
-                    server => "localhost",
-                    port   => $opts{p}+1,
-                );
-            };
-            #-- return to client code if connect succeeded
-            return $server_pid if !$@;
-            #-- bail out if the limit is reached
-            if ( $_ == 20 ) {
-                die "Couldn't start server: $@";
-            }
-            #-- wait a quarter second...
-            select(undef, undef, undef, 0.25);
-        }
+	    eval {
+	        Event::RPC::Client->log_connect (
+		    server => "localhost",
+		    port   => $opts{p}+1,
+	        );
+	    };
+	    #-- return to client code if connect succeeded
+	    return $server_pid if !$@;
+	    #-- bail out if the limit is reached
+	    if ( $_ == 20 ) {
+	        die "Couldn't start server: $@";
+	    }
+	    #-- wait a quarter second...
+	    select(undef, undef, undef, 0.25);
+	}
         #-- Client is finished here
         return $server_pid;
     }
@@ -104,6 +104,7 @@ sub start_server {
         classes => {
             'Event_RPC_Test'   => {
                 new              => '_constructor',
+                singleton        => '_singleton',
                 set_data         => 1,
                 get_data         => 1,
                 hello            => 1,

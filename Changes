@@ -1,5 +1,11 @@
 Revision history and release notes for Event::RPC:
 
+1.07 Mon Sep 21, 2015, joern
+    Features:
+    - New method return type '_singleton'. Objects
+      created this way are never destroyed on the
+      server.
+
 1.06 Sun Sep 20, 2015, joern
     Features:
     - New 'ssl_opts' attribute for Server and Client to

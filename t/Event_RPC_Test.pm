@@ -32,6 +32,13 @@ sub new {
 	return $self;
 }
 
+my $SINGLETON;
+sub singleton {
+    my $class = shift;
+    return $SINGLETON if $SINGLETON;
+    return $SINGLETON = $class->new(data => "singleton"),
+}
+
 sub hello {
 	my $self = shift;
 	
