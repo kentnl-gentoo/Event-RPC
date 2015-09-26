@@ -1,13 +1,16 @@
 use strict;
+use utf8;
 
 use Test::More;
 
 my $depend_modules = 0;
-eval { require Event } && ++$depend_modules;
-eval { require Glib }  && ++$depend_modules;
+eval { require EV };
+eval { require AnyEvent } && ++$depend_modules;
+eval { require Event    } && ++$depend_modules;
+eval { require Glib     } && ++$depend_modules;
 
 if ( not $depend_modules ) {
-	plan skip_all => "Neither Event nor Glib installed";
+    plan skip_all => "Neither AnyEvent, Event nor Glib installed";
 }
 
 eval { require IO::Socket::SSL };

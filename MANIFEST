@@ -11,10 +11,16 @@ lib/Event/RPC/Loop.pm
 lib/Event/RPC/Loop/AnyEvent.pm
 lib/Event/RPC/Loop/Event.pm
 lib/Event/RPC/Loop/Glib.pm
-lib/Event/RPC/Message.pm
 lib/Event/RPC/Server.pm
 lib/Event/RPC/Connection.pm
 lib/Event/RPC/LogConnection.pm
+lib/Event/RPC/Message.pm
+lib/Event/RPC/Message/Negotiate.pm
+lib/Event/RPC/Message/Storable.pm
+lib/Event/RPC/Message/JSON.pm
+lib/Event/RPC/Message/CBOR.pm
+lib/Event/RPC/Message/Sereal.pm
+lib/Event/RPC/Message/SerialiserBase.pm
 t/01.use.t
 t/02.cnct.t
 t/03.cnct-auth.t
@@ -24,6 +30,8 @@ t/04.cnct-auth-ssl-verifypeer.t
 t/04.cnct-auth-ssl-verifypeer-wrongca.t
 t/05.func.t
 t/06.object2.t
+t/07.maxpacket.t
+t/08.msg_formats.t
 t/Event_RPC_Test.pm
 t/Event_RPC_Test2.pm
 t/Event_RPC_Test_Server.pm

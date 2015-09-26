@@ -1,6 +1,10 @@
 package Event::RPC::LogConnection;
 
 use Carp;
+
+use strict;
+use utf8;
+
 use Socket;
 
 my $LOG_CONNECTION_ID;
@@ -70,7 +74,7 @@ sub input {
 
 __END__
 
-=encoding latin1
+=encoding utf8
 
 =head1 NAME
 
@@ -88,11 +92,11 @@ internal module and has no public interface.
 
 =head1 AUTHORS
 
-  J�rn Reder <joern at zyn dot de>
+  Jörn Reder <joern AT zyn.de>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2002-2006 by Joern Reder, All Rights Reserved.
+Copyright (C) 2002-2015 by Jörn Reder <joern AT zyn.de>.
 
 This library is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.

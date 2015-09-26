@@ -1,6 +1,7 @@
 package Event_RPC_Test2;
 
 use strict;
+use utf8;
 
 sub get_data			{ shift->{data}				}
 sub set_data			{ shift->{data}			= $_[1]	}

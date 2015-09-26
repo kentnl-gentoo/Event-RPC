@@ -1,7 +1,15 @@
 package Event::RPC::Connection;
 
 use strict;
+use utf8;
+
 use Carp;
+
+use Event::RPC::Message::Negotiate;
+
+#-- This can be changed for testing purposes e.g. to simulate
+#-- old servers which don't perform any format negotitation.
+$Event::RPC::Server::DEFAULT_MESSAGE_FORMAT = "Event::RPC::Message::Negotiate";
 
 my $CONNECTION_ID;
 
@@ -14,12 +22,14 @@ sub get_loaded_classes          { shift->{server}->{loaded_classes}     }
 sub get_objects                 { shift->{server}->{objects}            }
 sub get_client_oids             { shift->{client_oids}                  }
 
+sub get_message_format          { shift->{message_format}               }
 sub get_watcher                 { shift->{watcher}                      }
 sub get_write_watcher           { shift->{write_watcher}                }
 sub get_message                 { shift->{message}                      }
 sub get_is_authenticated        { shift->{is_authenticated}             }
 sub get_auth_user               { shift->{auth_user}                    }
 
+sub set_message_format          { shift->{message_format}       = $_[1] }
 sub set_watcher                 { shift->{watcher}              = $_[1] }
 sub set_write_watcher           { shift->{write_watcher}        = $_[1] }
 sub set_message                 { shift->{message}              = $_[1] }
@@ -42,6 +52,7 @@ sub new {
         write_watcher           => undef,
         message                 => undef,
         client_oids             => {},
+        message_format          => $Event::RPC::Server::DEFAULT_MESSAGE_FORMAT,
     }, $class;
 
     if ( $sock ) {
@@ -122,7 +133,7 @@ sub input {
     my $message = $self->get_message;
 
     if ( not $message ) {
-        $message = Event::RPC::Message->new ($self->get_sock);
+        $message = $self->get_message_format->new ($self->get_sock);
         $self->set_message($message);
     }
 
@@ -151,7 +162,22 @@ sub input {
             msg => "Unexpected error on incoming RPC call: $@",
         };
     }
+    elsif ( $cmd eq 'neg_formats_avail') {
+        $rc = {
+            ok       => 1,
+            msg      => join(",", @{$self->get_server->get_message_formats})
+        };
+    }
+    elsif ( $cmd eq 'neg_format_set') {
+        $rc = $self->client_requests_message_format($request->{msg});
+    }
     elsif ( $cmd eq 'version' ) {
+        #-- Probably we have fallen back to Storable because an old
+        #-- client has connected. so we change the negotiation
+        #-- message handler to the fallback handler for further
+        #-- communication on this connection.
+        $self->set_message_format(ref $message);
+
         $rc = {
             ok       => 1,
             version  => $Event::RPC::VERSION,
@@ -215,6 +241,28 @@ sub input {
     1;
 }
 
+sub client_requests_message_format {
+    my $self = shift;
+    my ($client_format) = @_;
+
+    foreach my $format ( @{$self->get_server->get_message_formats} ) {
+        if ( $client_format eq $format ) {
+            $self->set_message_format(
+                Event::RPC::Message::Negotiate->known_message_formats
+                                              ->{$client_format}
+            );
+
+            eval "use ".$self->get_message_format;
+            return { ok => 0, msg => "Server rejected format '$client_format': $@" }
+                if $@;
+
+            return { ok => 1 };
+        }
+    }
+
+    return { ok => 0, msg => "Server rejected format '$client_format'" };
+}
+
 sub authorize_user {
     my $self = shift;
     my ($request) = @_;
@@ -270,15 +318,15 @@ sub create_new_object {
 
     }
 
-    # load the class if not done yet
-    $self->load_class($class) if $self->get_server->get_load_modules;
-
-    # resolve object params
-    $self->resolve_object_params ($request->{params});
-
-    # ok, the class is there, let's execute the method
+    # ok, load class and execute the method
     my $object = eval {
-            $class->$class_method (@{$request->{params}})
+        # load the class if not done yet
+        $self->load_class($class) if $self->get_server->get_load_modules;
+
+        # resolve object params
+        $self->resolve_object_params ($request->{params});
+
+        $class->$class_method (@{$request->{params}})
     };
 
     # report error
@@ -329,7 +377,7 @@ sub load_class {
                         if -f "$dir/$rel_filename";
             }
 
-            croak "File for class '$class' not found"
+            croak "File for class '$class' not found\n"
                 if not $filename;
 
             $load_class_info->{filename} = $filename;
@@ -339,18 +387,14 @@ sub load_class {
         $mtime ||= 0;
 
         $self->log (3, "Class '$class' ($load_class_info->{filename}) changed on disk. Reloading...")
-                if $mtime > $load_class_info->{mtime};
+            if $mtime > $load_class_info->{mtime};
 
         do $load_class_info->{filename};
 
         if ( $@ ) {
             $self->log ("Can't load class '$class': $@");
             $load_class_info->{mtime} = 0;
-
-            return {
-                ok  => 0,
-                msg => "Can't load class $class: $@",
-            };
+            die "Can't load class $class: $@";
         }
         else {
             $self->log (3, "Class '$class' successfully loaded");
@@ -376,7 +420,7 @@ sub execute_object_method {
     my $method = $request->{method};
 
     if ( not defined $object_entry ) {
-        # object does not exists
+        # object does not exist
         $self->log ("Illegal access to unknown object with oid=$oid");
         return {
             ok  => 0,
@@ -398,14 +442,15 @@ sub execute_object_method {
 
     my $return_type = $self->get_classes->{$class}->{$method};
 
-    # (re)load the class if not done yet
-    $self->load_class($class) if $self->get_server->get_load_modules;
-
-    # resolve object params
-    $self->resolve_object_params ($request->{params});
-
-    # ok, try executing the method
+    # ok, try loading class and executing the method
     my @rc = eval {
+        # (re)load the class if not done yet
+        $self->load_class($class) if $self->get_server->get_load_modules;
+
+        # resolve object params
+        $self->resolve_object_params ($request->{params});
+
+        # exeute method
         $object_entry->{object}->$method (@{$request->{params}})
     };
 
@@ -560,7 +605,7 @@ sub resolve_object_params {
 
 __END__
 
-=encoding latin1
+=encoding utf8
 
 =head1 NAME
 
@@ -633,11 +678,11 @@ no need to mess with that.
 
 =head1 AUTHORS
 
-  J�rn Reder <joern at zyn dot de>
+  Jörn Reder <joern AT zyn.de>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2002-2006 by Joern Reder, All Rights Reserved.
+Copyright (C) 2002-2015 by Jörn Reder <joern AT zyn.de>.
 
 This library is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.

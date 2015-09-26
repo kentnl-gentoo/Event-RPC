@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------
-# Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
+# Copyright (C) 2002-2015 by JÃ¶rn Reder <joern AT zyn.de>.
 # All Rights Reserved. See file COPYRIGHT for details.
 # 
 # This module is part of Event::RPC, which is free software; you can
@@ -9,12 +9,14 @@
 package Event::RPC::Server;
 
 use Event::RPC;
-use Event::RPC::Message;
 use Event::RPC::Connection;
 use Event::RPC::LogConnection;
+use Event::RPC::Message::Negotiate;
 
 use Carp;
 use strict;
+use utf8;
+
 use IO::Socket::INET;
 use Sys::Hostname;
 
@@ -45,6 +47,8 @@ sub get_connection_hook         { shift->{connection_hook}              }
 sub get_load_modules            { shift->{load_modules}                 }
 sub get_auto_reload_modules     { shift->{auto_reload_modules}          }
 sub get_active_connection       { shift->{active_connection}            }
+sub get_message_formats         { shift->{message_formats}              }
+sub get_insecure_msg_fmt_ok     { shift->{insecure_msg_fmt_ok}          }
 
 sub set_host                    { shift->{host}                 = $_[1] }
 sub set_port                    { shift->{port}                 = $_[1] }
@@ -73,6 +77,8 @@ sub set_connection_hook         { shift->{connection_hook}      = $_[1] }
 sub set_load_modules            { shift->{load_modules}         = $_[1] }
 sub set_auto_reload_modules     { shift->{auto_reload_modules}  = $_[1] }
 sub set_active_connection       { shift->{active_connection}    = $_[1] }
+sub set_message_formats         { shift->{message_formats}      = $_[1] }
+sub set_insecure_msg_fmt_ok     { shift->{insecure_msg_fmt_ok}  = $_[1] }
 
 my $INSTANCE;
 sub instance { $INSTANCE }
@@ -96,10 +102,13 @@ sub new {
     @par{'ssl','ssl_key_file','ssl_cert_file','ssl_passwd_cb','ssl_opts'};
     my  ($auth_required, $auth_passwd_href, $auth_module, $loop) =
     @par{'auth_required','auth_passwd_href','auth_module','loop'};
-    my  ($connection_hook, $auto_reload_modules, $load_modules) =
-    @par{'connection_hook','auto_reload_modules','load_modules'};
+    my  ($connection_hook, $auto_reload_modules) =
+    @par{'connection_hook','auto_reload_modules'};
+    my  ($load_modules, $message_formats, $insecure_msg_fmt_ok) =
+    @par{'load_modules','message_formats','insecure_msg_fmt_ok'};
 
     $name ||= "Event-RPC-Server";
+    $insecure_msg_fmt_ok = 1 unless defined $insecure_msg_fmt_ok;
 
     #-- for backwards compatibility 'load_modules' defaults to 1
     if ( !exists $par{load_modules} ) {
@@ -146,6 +155,9 @@ sub new {
         auto_reload_modules     => $auto_reload_modules,
         connection_hook         => $connection_hook,
 
+        message_formats         => $message_formats,
+        insecure_msg_fmt_ok     => $insecure_msg_fmt_ok,
+
         rpc_socket              => undef,
         loaded_classes          => {},
         objects                 => {},
@@ -170,6 +182,43 @@ sub DESTROY {
     close ($rpc_socket) if $rpc_socket;
 
     1;
+}
+
+sub probe_message_formats {
+    my $class = shift;
+    my ($user_supplied_formats, $insecure_msg_fmt_ok) = @_;
+
+    my $order_lref      = Event::RPC::Message::Negotiate->message_format_order;
+    my $modules_by_name = Event::RPC::Message::Negotiate->known_message_formats;
+
+    my %probe_formats;
+    if ( $user_supplied_formats ) {
+        @probe_formats{@{$user_supplied_formats}} =
+            (1) x @{$user_supplied_formats};
+    }
+    else {
+        %probe_formats = %{$modules_by_name};
+    }
+
+    #-- By default we probe all supported formats, but
+    #-- not Storable. User has to activate this explicitely.
+    if ( not $insecure_msg_fmt_ok ) {
+        delete $probe_formats{STOR};
+    }
+
+    Event::RPC::Message::Negotiate->set_storable_fallback_ok($insecure_msg_fmt_ok);
+
+    my @supported_formats;
+    foreach my $name ( @{$order_lref} ) {
+        next unless $probe_formats{$name};
+
+        my $module = $modules_by_name->{$name};
+        eval "use $module";
+
+        push @supported_formats, $name unless $@;
+    }
+
+    return \@supported_formats;
 }
 
 sub setup_listeners {
@@ -283,6 +332,14 @@ sub start {
         unless $self->get_listeners_started;
 
     $self->setup_auth_module;
+
+    #-- Filter unsupported message formats
+    $self->set_message_formats(
+        $self->probe_message_formats(
+            $self->get_message_formats,
+            $self->get_insecure_msg_fmt_ok
+        )
+    );
 
     my $loop = $self->get_loop;
 
@@ -459,7 +516,7 @@ sub print_object_register {
 
 __END__
 
-=encoding latin1
+=encoding utf8
 
 =head1 NAME
 
@@ -503,6 +560,9 @@ Event::RPC::Server - Simple API for event driven RPC servers
       load_modules        => 1,
       auto_reload_modules => 1,
       connection_hook     => sub { ... },
+
+      message_formats     => [qw/ SERL CBOR JSON STOR /],
+      insecure_msg_fmt_ok => 1,
   );
 
   $server->set_max_packet_size(2*1024*1024*1024);
@@ -811,6 +871,38 @@ all necessary Event::RPC listeners:
 
 and manage the main loop stuff on your own.
 
+=head2 MESSAGE FORMAT OPTIONS
+
+Event::RPC supports different CPAN modules for data serialisation,
+named "message formats" here:
+
+  SERL -- Sereal::Encoder, Sereal::Decoder
+  CBOR -- CBOR::XS
+  JSON -- JSON::XS
+  STOR -- Storable
+
+Server and client negotiate automatically which format is
+best to use but you can manipulate this behaviour with the
+following options:
+
+=over 4
+
+=item B<message_formats>
+
+This takes an array of format identifiers from the list
+above. Event::RPC::Server will only use / accept these
+formats.
+
+=item B<insecure_msg_fmt_ok>
+
+The Storable module is known to be insecure. But for
+backward compatibility reasons Event::RPC::Server accepts
+clients which can't offer anything but Storable. You can
+prevent that by setting this option explicitely to 0. It's
+enabled by default.
+
+=back
+
 =head2 MISCELLANEOUS OPTIONS
 
 =over 4
@@ -912,11 +1004,11 @@ Returns the currently active max packet size.
 
 =head1 AUTHORS
 
-  Jörn Reder <joern at zyn dot de>
+  JÃ¶rn Reder <joern AT zyn.de>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2002-2006 by Joern Reder, All Rights Reserved.
+Copyright (C) 2002-2015 by JÃ¶rn Reder <joern AT zyn.de>.
 
 This library is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.

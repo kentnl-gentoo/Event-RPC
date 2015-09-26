@@ -1,15 +1,18 @@
 use strict;
+use utf8;
 use Test::More;
 
 my $depend_modules = 0;
-eval { require Event } && ++$depend_modules;
-eval { require Glib }  && ++$depend_modules;
+eval { require EV };
+eval { require AnyEvent } && ++$depend_modules;
+eval { require Event    } && ++$depend_modules;
+eval { require Glib     } && ++$depend_modules;
 
 if ( not $depend_modules ) {
-	plan skip_all => "Neither Event nor Glib installed";
+    plan skip_all => "Neither AnyEvent, Event nor Glib installed";
 }
 
-plan tests => 16;
+plan tests => 18;
 
 require "t/Event_RPC_Test_Server.pm";
 my $PORT = Event_RPC_Test_Server->port;
@@ -47,6 +50,12 @@ ok ((ref $object)=~/Event_RPC_Test/, "object created via RPC");
 
 # test data
 ok ($object->get_data eq $data, "data member ok");
+
+# set data, some utf8
+ok ($object->set_data("你好世界") eq "你好世界", "set data utf8");
+
+# check set data, some utf8
+ok ($object->get_data eq "你好世界", "get data utf8");
 
 # set data
 ok ($object->set_data("foo") eq "foo", "set data");

@@ -1,6 +1,5 @@
-
 #-----------------------------------------------------------------------
-# Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
+# Copyright (C) 2002-2015 by JÃ¶rn Reder <joern AT zyn.de>.
 # All Rights Reserved. See file COPYRIGHT for details.
 # 
 # This module is part of Event::RPC, which is free software; you can
@@ -11,7 +10,25 @@ package Event::RPC::Message;
 
 use Carp;
 use strict;
-use Storable;
+use utf8;
+
+my %DECODERS = (
+    STOR    => sub { require Storable; Storable::thaw($_[0])                    },
+    JSON    => sub { require JSON::XS; JSON::XS->new->allow_tags->decode($_[0]) },
+    CBOR    => sub { require CBOR::XS; CBOR::XS->new->decode($_[0])             },
+    SERL    => sub { require Sereal;   Sereal::decode_sereal($_[0])             },
+
+    TEST    => sub { require Storable; Storable::thaw($_[0])                    },
+);
+
+my %ENCODERS = (
+    STOR    => sub { require Storable; Storable::nfreeze ($_[0])                                                    },
+    JSON    => sub { require JSON::XS; '%E:R:JSON%'.JSON::XS->new->latin1->allow_blessed->allow_tags->encode($_[0]) },
+    CBOR    => sub { require CBOR::XS; '%E:R:CBOR%'.CBOR::XS->new->encode($_[0])                                    },
+    SERL    => sub { require Sereal;   '%E:R:SERL%'.Sereal::encode_sereal($_[0])                                    },
+
+    TEST    => sub { "//NEGOTIATE(A,B,C)//" },
+);
 
 my $DEBUG = 0;
 my $MAX_PACKET_SIZE = 2*1024*1024*1024;
@@ -93,7 +110,7 @@ sub read {
 
     $DEBUG && print "DEBUG: read finished, length=$buffer_length\n";
 
-    my $data = Storable::thaw($self->{buffer});
+    my $data = $self->decode_message($self->{buffer});
 
     $self->{buffer} = undef;
     $self->{length} = 0;
@@ -116,12 +133,12 @@ sub set_data {
 
     $DEBUG && print "DEBUG: Message->set_data($data)\n";
 
-    my $packed = Storable::nfreeze ($data);
+    my $packed = $self->encode_message($data);
 
     if ( length($packed) > $MAX_PACKET_SIZE ) {
         Event::RPC::Server->instance->log("ERROR: response packet exceeds limit of $MAX_PACKET_SIZE bytes");
         $data = { rc => 0, msg => "Response packed exceeds limit of $MAX_PACKET_SIZE bytes" };
-        $packed = Storable::nfreeze ($data);
+        $packed = $self->encode_message($data);
     }
 
     $self->{buffer} = pack("N", length($packed)).$packed;
@@ -178,7 +195,7 @@ sub write_blocked {
 
 __END__
 
-=encoding latin1
+=encoding utf8
 
 =head1 NAME
 
@@ -197,11 +214,11 @@ network.
 
 =head1 AUTHORS
 
-  Jörn Reder <joern at zyn dot de>
+  JÃ¶rn Reder <joern AT zyn.de>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2002-2006 by Joern Reder, All Rights Reserved.
+Copyright (C) 2002-2015 by JÃ¶rn Reder <joern AT zyn.de>.
 
 This library is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.

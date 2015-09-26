@@ -1,6 +1,7 @@
 package Event_RPC_Test_Server;
 
 use strict;
+use utf8;
 
 use lib qw(t);
 use Fcntl qw( :flock );
@@ -72,10 +73,10 @@ sub start_server {
     }
 
     #-- Create a logger object
-    my $logger = Event::RPC::Logger->new (
-        min_level => (defined $opts{l} ? $opts{l} : 4),
+    my $logger = $opts{l} ? Event::RPC::Logger->new (
+        min_level => $opts{l},
         fh_lref   => [ \*STDOUT ],
-    );
+    ) : undef;
 
     #-- Create a loop object
     my $loop;
@@ -97,14 +98,34 @@ sub start_server {
         name               => "test daemon",
         port               => $port,
         loop               => $loop,
+        logger             => $logger,
         start_log_listener => 1,
         load_modules       => 0,
+        message_formats    => $opts{f},
+        insecure_msg_fmt_ok => $opts{i},
         %auth_args,
         %ssl_args,
         classes => {
             'Event_RPC_Test'   => {
                 new              => '_constructor',
                 singleton        => '_singleton',
+                set_data         => 1,
+                get_data         => 1,
+                hello            => 1,
+                quit             => 1,
+                clone            => '_object',
+                multi            => '_object',
+                get_object2      => '_object',
+                new_object2      => '_object',
+                echo             => 1,
+                get_cid          => 1,
+                get_object_cnt   => 1,
+                get_undef_object => '_object',
+                get_big_data_struct => 1,
+                async_call_1     => 'object:async:reeintrant'
+            },
+            'Event_RPC_Test2'  => {
+                new              => '_constructor',
                 set_data         => 1,
                 get_data         => 1,
                 hello            => 1,

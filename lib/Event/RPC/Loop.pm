@@ -1,6 +1,5 @@
-
 #-----------------------------------------------------------------------
-# Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
+# Copyright (C) 2002-2015 by JÃ¶rn Reder <joern AT zyn.de>.
 # All Rights Reserved. See file COPYRIGHT for details.
 # 
 # This module is part of Event::RPC, which is free software; you can
@@ -8,6 +7,9 @@
 #-----------------------------------------------------------------------
 
 package Event::RPC::Loop;
+
+use strict;
+use utf8;
 
 sub new {
     my $class = shift;
@@ -18,7 +20,7 @@ sub new {
 
 __END__
 
-=encoding latin1
+=encoding utf8
 
 =head1 NAME
 
@@ -153,11 +155,11 @@ no need to access it through Event::RPC::Loop.
 
 =head1 AUTHORS
 
-  Jörn Reder <joern at zyn dot de>
+  JÃ¶rn Reder <joern AT zyn.de>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2002-2006 by Joern Reder, All Rights Reserved.
+Copyright (C) 2002-2015 by JÃ¶rn Reder <joern AT zyn.de>.
 
 This library is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.

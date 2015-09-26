@@ -71,14 +71,26 @@ REQUIREMENTS
 
       IO::Socket::SSL
 
-    As well Event::RPC makes heavy use of the
+    Event::RPC needs minimum one of the following modules for data
+    serialisation:
 
+      Sereal (::Decoder and ::Encoder)
+      CBOR::XS
+      JSON::XS
       Storable
 
-    module, which is part of the Perl standard library. It's important that
-    both client and server use exactly the same version of the Storable
-    module! Otherwise Event::RPC client/server communication will fail
-    badly.
+    Server and client negotiate automatically which serialiser to use to
+    achieve maximum compatibility.
+
+    Some words about the Storable module: it's known to be insecure, so
+    Event::RPC uses it as the last option. You can even prevent Event::RPC
+    from using it at all (even when it's installed, which is the case for
+    nearly every Perl installation) - check manpages of Event::Server and
+    Event::Client about the details.
+
+    In case you use Storable take care that both client and server use
+    exactly the same version of the Storable module! Otherwise Event::RPC
+    client/server communication will fail badly.
 
 INSTALLATION
     You get the latest installation tarballs and online documentation at
@@ -156,10 +168,10 @@ LIMITATIONS
     direkt argument of the method subroutine.
 
 AUTHORS
-      J�rn Reder <joern at zyn dot de>
+      Jörn Reder <joern AT zyn.de>
 
 COPYRIGHT AND LICENSE
-    Copyright (C) 2002-2006 by Joern Reder, All Rights Reserved.
+    Copyright (C) 2002-2015 by Jörn Reder <joern AT zyn.de>.
 
     This library is free software; you can redistribute it and/or modify it
     under the same terms as Perl itself.

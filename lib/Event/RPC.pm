@@ -1,7 +1,10 @@
 package Event::RPC;
 
-$VERSION  = "1.07";
+$VERSION  = "1.08_01";
 $PROTOCOL = "1.00";
+
+use strict;
+use utf8;
 
 sub crypt {
     my $class = shift;
@@ -11,7 +14,7 @@ sub crypt {
 
 __END__
 
-=encoding latin1
+=encoding utf8
 
 =head1 NAME
 
@@ -73,13 +76,26 @@ If you like to use SSL encryption you need to install
 
   IO::Socket::SSL
 
-As well Event::RPC makes heavy use of the
+Event::RPC needs minimum one of the following modules for
+data serialisation:
 
+  Sereal (::Decoder and ::Encoder)
+  CBOR::XS
+  JSON::XS
   Storable
 
-module, which is part of the Perl standard library. It's important
-that both client and server use B<exactly the same version of the Storable
-module>! Otherwise Event::RPC client/server communication will fail badly.
+Server and client negotiate automatically which serialiser to use
+to achieve maximum compatibility.
+
+Some words about the Storable module: it's known to be insecure,
+so Event::RPC uses it as the last option. You can even prevent
+Event::RPC from using it at all (even when it's installed, which
+is the case for nearly every Perl installation) - check manpages
+of Event::Server and Event::Client about the details.
+
+In case you use Storable take care that both client and server
+use B<exactly the same version of the Storable module>!
+Otherwise Event::RPC client/server communication will fail badly.
 
 =head1 INSTALLATION
 
@@ -165,11 +181,11 @@ They must be passed as a direkt argument of the method subroutine.
 
 =head1 AUTHORS
 
-  J�rn Reder <joern at zyn dot de>
+  Jörn Reder <joern AT zyn.de>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2002-2006 by Joern Reder, All Rights Reserved.
+Copyright (C) 2002-2015 by Jörn Reder <joern AT zyn.de>.
 
 This library is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.

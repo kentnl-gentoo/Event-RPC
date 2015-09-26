@@ -1,6 +1,5 @@
-
 #-----------------------------------------------------------------------
-# Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
+# Copyright (C) 2002-2015 by JÃ¶rn Reder <joern AT zyn.de>.
 # All Rights Reserved. See file COPYRIGHT for details.
 # 
 # This module is part of Event::RPC, which is free software; you can
@@ -29,7 +28,7 @@ sub new {
 sub hello {
 	my $self = shift;
 	
-	return "Hello again. My data is: '".$self->get_data."'";
+	return "Hello again. My data is: '".$self->get_data."' and event model is: $AnyEvent::MODEL";
 }
 
 sub quit {

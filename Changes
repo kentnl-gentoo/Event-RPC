@@ -1,5 +1,32 @@
 Revision history and release notes for Event::RPC:
 
+1.08_01 Sat Sep 26, 2015, joern
+    Features:
+    - Support for multiple serialisers: Sereal, CBOR::XS,
+      JSON::XS and Storable. That's because Storable is
+      known to be insecure, so this module should not
+      rely on it.
+
+      Great care has been taken to make these changes
+      up- and downwards compatible, so old clients still
+      can connect to new servers and vice versa.
+
+      Check documentation chapters MESSAGE FORMAT OPTIONS
+      in Event::RPC, Event::RPC::Server and Event::RPC::Client
+      manpages for details.
+
+      Thanks to mala <mala AT ma.la> for his hint about the
+      security issues of Storable. You find more details in
+      this article:
+
+      http://www.masteringperl.org/2012/12/the-storable-security-problem/
+
+    Bugfixes:
+    - Proper handling of exceptions which occur at the
+      server before a remote method is really executed,
+      e.g. when lookup of the class failed due to
+      incorrect @INC path.
+
 1.07 Mon Sep 21, 2015, joern
     Features:
     - New method return type '_singleton'. Objects

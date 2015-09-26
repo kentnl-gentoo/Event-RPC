@@ -1,6 +1,5 @@
-
 #-----------------------------------------------------------------------
-# Copyright (C) 2002-2005 Jörn Reder <joern AT zyn.de>.
+# Copyright (C) 2002-2015 by JÃ¶rn Reder <joern AT zyn.de>.
 # All Rights Reserved. See file COPYRIGHT for details.
 # 
 # This module is part of Event::RPC, which is free software; you can
@@ -12,6 +11,7 @@ package Event_RPC_Test;
 use Event_RPC_Test2;
 
 use strict;
+use utf8;
 
 sub get_data			{ shift->{data}				}
 sub get_object2			{ shift->{object2}				}
@@ -88,22 +88,22 @@ sub echo {
 }
 
 sub get_cid {
-        my $self = shift;
-        my $connection = Event::RPC::Server->instance->get_active_connection;
-        my $cid = $connection->get_cid;
-        return $cid;
+    my $self = shift;
+    my $connection = Event::RPC::Server->instance->get_active_connection;
+    my $cid = $connection->get_cid;
+    return $cid;
 }
 
 sub get_object_cnt {
-        my $self = shift;
-        my $connection = Event::RPC::Server->instance->get_active_connection;
-        my $client_oids = $connection->get_client_oids;
-        my $cnt = keys %{$client_oids};
-        return $cnt;
+    my $self = shift;
+    my $connection = Event::RPC::Server->instance->get_active_connection;
+    my $client_oids = $connection->get_client_oids;
+    my $cnt = keys %{$client_oids};
+    return $cnt;
 }
 
 sub get_undef_object {
-        return undef;
+    return undef;
 }
 
 sub new_object2 {
@@ -113,10 +113,19 @@ sub new_object2 {
 }
 
 sub get_big_data_struct {
-        my @records;
+    my @records;
 
-        for (0..100) {
-            push @records, {
+    for (0..100) {
+        push @records, {
+            a   => 123,
+            b   => 456789,
+            c   => "ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n",
+            d   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 20),
+            e   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 20),
+            f   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 50),
+            g   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 50),
+            x   => $_,
+            h   => {
                 a   => 123,
                 b   => 456789,
                 c   => "ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n",
@@ -125,20 +134,11 @@ sub get_big_data_struct {
                 f   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 50),
                 g   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 50),
                 x   => $_,
-                h   => {
-                    a   => 123,
-                    b   => 456789,
-                    c   => "ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n",
-                    d   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 20),
-                    e   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 20),
-                    f   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 50),
-                    g   => ("ABCD ABCD ABCD ABCD ABCD ABCD ABCD ABCD\n" x 50),
-                    x   => $_,
-                },
-            };
-        }
+            },
+        };
+    }
 
-        return \@records;
+    return \@records;
 }
 
 1;

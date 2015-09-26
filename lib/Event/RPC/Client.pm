@@ -1,6 +1,5 @@
-
 #-----------------------------------------------------------------------
-# Copyright (C) 2002-2006 Jörn Reder <joern AT zyn.de>.
+# Copyright (C) 2002-2015 by JÃ¶rn Reder <joern AT zyn.de>.
 # All Rights Reserved. See file COPYRIGHT for details.
 #
 # This module is part of Event::RPC, which is free software; you can
@@ -10,11 +9,17 @@
 package Event::RPC::Client;
 
 use Event::RPC;
-use Event::RPC::Message;
+use Event::RPC::Message::Negotiate;
 
 use Carp;
 use strict;
+use utf8;
+
 use IO::Socket::INET;
+
+#-- This can be changed for testing purposes e.g. to simulate
+#-- old clients connecting straight with Storable format.
+$Event::RPC::Client::DEFAULT_MESSAGE_FORMAT = "Event::RPC::Message::Negotiate";
 
 sub get_client_version          { $Event::RPC::VERSION                  }
 sub get_client_protocol         { $Event::RPC::PROTOCOL                 }
@@ -37,6 +42,8 @@ sub get_connected               { shift->{connected}                    }
 sub get_server                  { shift->{server}                       }
 sub get_server_version          { shift->{server_version}               }
 sub get_server_protocol         { shift->{server_protocol}              }
+sub get_message_format          { shift->{message_format}               }
+sub get_insecure_msg_fmt_ok     { shift->{insecure_msg_fmt_ok}          }
 
 sub set_host                    { shift->{host}                 = $_[1] }
 sub set_port                    { shift->{port}                 = $_[1] }
@@ -56,6 +63,8 @@ sub set_connected               { shift->{connected}            = $_[1] }
 sub set_server                  { shift->{server}               = $_[1] }
 sub set_server_version          { shift->{server_version}       = $_[1] }
 sub set_server_protocol         { shift->{server_protocol}      = $_[1] }
+sub set_message_format          { shift->{message_format}       = $_[1] }
+sub set_insecure_msg_fmt_ok     { shift->{insecure_msg_fmt_ok}  = $_[1] }
 
 sub get_max_packet_size {
     return Event::RPC::Message->get_max_packet_size;
@@ -72,11 +81,12 @@ sub new {
     my %par   = @_;
     my  ($server, $host, $port, $classes, $class_map, $error_cb, $timeout) =
     @par{'server','host','port','classes','class_map','error_cb','timeout'};
-    my  ($ssl, $ssl_ca_file, $ssl_opts, $auth_user, $auth_pass) =
-    @par{'ssl','ssl_ca_file','ssl_opts','auth_user','auth_pass'};
+    my  ($ssl, $ssl_ca_file, $ssl_opts, $auth_user, $auth_pass, $insecure_msg_fmt_ok) =
+    @par{'ssl','ssl_ca_file','ssl_opts','auth_user','auth_pass','insecure_msg_fmt_ok'};
 
     $server ||= '';
     $host   ||= '';
+    $insecure_msg_fmt_ok = 1 unless defined $insecure_msg_fmt_ok;
 
     if ( $server ne '' and $host eq '' ) {
         warn "Option 'server' is deprecated. Use 'host' instead.";
@@ -84,20 +94,22 @@ sub new {
     }
 
     my $self = bless {
-        host           => $server,
-        server         => $host,
-        port           => $port,
-        timeout        => $timeout,
-        classes        => $classes,
-        class_map      => $class_map,
-        ssl            => $ssl,
-        ssl_ca_file    => $ssl_ca_file,
-        ssl_opts       => $ssl_opts,
-        auth_user      => $auth_user,
-        auth_pass      => $auth_pass,
-        error_cb       => $error_cb,
-        loaded_classes => {},
-        connected      => 0,
+        host                => $server,
+        server              => $host,
+        port                => $port,
+        timeout             => $timeout,
+        classes             => $classes,
+        class_map           => $class_map,
+        ssl                 => $ssl,
+        ssl_ca_file         => $ssl_ca_file,
+        ssl_opts            => $ssl_opts,
+        auth_user           => $auth_user,
+        auth_pass           => $auth_pass,
+        error_cb            => $error_cb,
+        message_format      => $Event::RPC::Client::DEFAULT_MESSAGE_FORMAT,
+        insecure_msg_fmt_ok => $insecure_msg_fmt_ok,
+        loaded_classes      => {},
+        connected           => 0,
     }, $class;
 
     return $self;
@@ -112,6 +124,13 @@ sub connect {
     my $server  = $self->get_server;
     my $port    = $self->get_port;
     my $timeout = $self->get_timeout;
+
+    $self->set_message_format($Event::RPC::Client::DEFAULT_MESSAGE_FORMAT);
+
+    #-- Client may try to fallback to Storable
+    Event::RPC::Message::Negotiate->set_storable_fallback_ok(1)
+        if $self->get_message_format eq 'Event::RPC::Message::Negotiate' and
+           $self->get_insecure_msg_fmt_ok;
 
     if ( $ssl ) {
         eval { require IO::Socket::SSL };
@@ -162,7 +181,19 @@ sub connect {
 
     $self->set_sock($sock);
 
-    $self->check_version;
+    eval {
+        #-- Perform message format negotitation if we are not
+        #-- configured to a specific format already.
+        $self->negotiate_message_format
+            if $self->get_message_format eq 'Event::RPC::Message::Negotiate';
+
+        $self->check_version;
+    };
+
+    if ( $@ ) {
+        $self->disconnect;
+        die $@;
+    }
 
     my $auth_user = $self->get_auth_user;
     my $auth_pass = $self->get_auth_pass;
@@ -237,10 +268,70 @@ sub error {
     1;
 }
 
+sub negotiate_message_format {
+    my $self = shift;
+
+    my $rc = eval {
+        $self->send_request({
+            cmd => "neg_formats_avail"
+        })
+    };
+
+    if ( $@ ) {
+        #-- On error we probably may fall back to Storable
+        #-- (we connected to an old server)
+        if ( $self->get_insecure_msg_fmt_ok ) {
+            require Event::RPC::Message::Storable;
+            $self->set_message_format("Event::RPC::Message::Storable");
+            return;
+        }
+
+        #-- die if Storable is not allowed
+        die "Error on message format negotiation and client is not ".
+            "allowed to fall back to Storable\n";
+    }
+
+    my $modules_by_format_name =
+        Event::RPC::Message::Negotiate->known_message_formats;
+
+    my @formats = split(/,/, $rc->{msg});
+
+    my $format_chosen = '';
+    my $module_chosen = '';
+    foreach my $format ( @formats ) {
+        my $module = $modules_by_format_name->{$format}
+            or die "Unknown message format '$format";
+
+        eval "use $module";
+
+        if ( not $@ ) {
+            $format_chosen = $format;
+            $module_chosen = $module;
+            last;
+        };
+    }
+
+    die "Can't negotiate message format\n" unless $format_chosen;
+
+    eval {
+        $self->send_request({
+            cmd => "neg_format_set",
+            msg => $format_chosen,
+        })
+    };
+
+    die "Error on neg_format_set: $@" if $@;
+
+    $self->set_message_format($module_chosen);
+
+    1;
+}
+
 sub check_version {
     my $self = shift;
 
-    my $rc = $self->send_request( { cmd => 'version', } );
+    my $rc = eval { $self->send_request( { cmd => 'version', } ) };
+    die "CATCHED $@" if $@;
 
     $self->set_server_version( $rc->{version} );
     $self->set_server_protocol( $rc->{protocol} );
@@ -429,7 +520,7 @@ sub send_request {
     my $self = shift;
     my ($request) = @_;
 
-    my $message = Event::RPC::Message->new( $self->get_sock );
+    my $message = $self->get_message_format->new( $self->get_sock );
 
     $message->write_blocked($request);
 
@@ -452,7 +543,7 @@ sub send_request {
 
 __END__
 
-=encoding latin1
+=encoding utf8
 
 =head1 NAME
 
@@ -480,6 +571,8 @@ Event::RPC::Client - Client API to connect to Event::RPC Servers
 
     auth_user => "fred",
     auth_pass => Event::RPC->crypt("fred",$password),
+
+    insecure_msg_fmt_ok => 1,
 
     error_cb => sub {
       my ($client, $error) = @_;
@@ -669,6 +762,36 @@ use this method:
 If the passed credentials are invalid the Event::RPC::Client->connect()
 method throws a correspondent exception.
 
+=head2 MESSAGE FORMAT OPTIONS
+
+Event::RPC supports different CPAN modules for data serialisation,
+named "message formats" here:
+
+  SERL -- Sereal::Encoder, Sereal::Decoder
+  CBOR -- CBOR::XS
+  JSON -- JSON::XS
+  STOR -- Storable
+
+Server and client negotiate automatically which format is
+best to use. The server sends a list of supported formats
+to the client which takes the first one which is available.
+
+For the client there is one option to influence this
+format negotiation mechanism:
+
+=over 4
+
+=item B<insecure_msg_fmt_ok>
+
+The Storable module is known to be insecure, so it should
+be taken as the last option only. By default the Client
+would do so. You can prevent that by setting this option
+explicitely to 0. It's enabled by default. Most likely
+the connection will fail in that case, because the server
+only will offer Storable if no other serialiser is available.
+
+=back
+
 =head2 ERROR HANDLING
 
 Any exceptions thrown on the server during execution of a remote
@@ -756,11 +879,11 @@ Returns the Event::RPC protocol number of the client.
 
 =head1 AUTHORS
 
-  Jörn Reder <joern at zyn dot de>
+  JÃ¶rn Reder <joern AT zyn.de>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2002-2006 by Joern Reder, All Rights Reserved.
+Copyright (C) 2002-2015 by JÃ¶rn Reder <joern AT zyn.de>.
 
 This library is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.
