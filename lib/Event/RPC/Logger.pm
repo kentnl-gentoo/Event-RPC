@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------
-# Copyright (C) 2002-2015 by Jörn Reder <joern AT zyn.de>.
+# Copyright (C) 2005-2015 by Jörn Reder <joern AT zyn.de>.
 # All Rights Reserved. See file COPYRIGHT for details.
 # 
 # This module is part of Event::RPC, which is free software; you can
@@ -204,7 +204,7 @@ Removes a filehandle.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2002-2015 by Jörn Reder <joern AT zyn.de>.
+Copyright (C) 2005-2015 by Jörn Reder <joern AT zyn.de>.
 
 This library is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.

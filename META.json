@@ -4,7 +4,7 @@
       "unknown"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.98, CPAN::Meta::Converter version 2.142690",
+   "generated_by" : "ExtUtils::MakeMaker version 7.1, CPAN::Meta::Converter version 2.142690",
    "license" : [
       "unknown"
    ],
@@ -39,11 +39,12 @@
             "IO::Socket::SSL" : "0",
             "JSON::XS" : "3",
             "Net::SSLeay" : "0",
+            "Sereal" : "3",
             "Storable" : "0",
             "Test::More" : "0"
          }
       }
    },
-   "release_status" : "testing",
-   "version" : "1.08_01"
+   "release_status" : "stable",
+   "version" : "1.08"
 }

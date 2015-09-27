@@ -1,5 +1,11 @@
 Revision history and release notes for Event::RPC:
 
+1.08 Sun Sep 26, 2015, joern
+    Notes:
+    - Just a stable release without changes. I thought
+      CPAN testers would pick up developer releases
+      too, but was wrong ;)
+
 1.08_01 Sat Sep 26, 2015, joern
     Features:
     - Support for multiple serialisers: Sereal, CBOR::XS,
@@ -26,6 +32,8 @@ Revision history and release notes for Event::RPC:
       server before a remote method is really executed,
       e.g. when lookup of the class failed due to
       incorrect @INC path.
+    - Fixed encoding of source files and corrected
+      the year of all Copyright notices.
 
 1.07 Mon Sep 21, 2015, joern
     Features:

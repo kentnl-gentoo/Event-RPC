@@ -1,6 +1,6 @@
 package Event::RPC;
 
-$VERSION  = "1.08_01";
+$VERSION  = "1.08";
 $PROTOCOL = "1.00";
 
 use strict;
@@ -185,7 +185,7 @@ They must be passed as a direkt argument of the method subroutine.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2002-2015 by Jörn Reder <joern AT zyn.de>.
+Copyright (C) 2005-2015 by Jörn Reder <joern AT zyn.de>.
 
 This library is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.
