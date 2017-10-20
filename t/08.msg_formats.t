@@ -15,8 +15,8 @@ eval { require Glib     } && ++$depend_modules;
 if ( not $depend_modules ) {
     plan skip_all => "Neither AnyEvent, Event nor Glib installed";
 }
-
-require "t/Event_RPC_Test_Server.pm";
+use lib 't/lib';
+require Event_RPC_Test_Server;
 my $PORT = Event_RPC_Test_Server->port;
 
 # determine available message formats (including the insecure)

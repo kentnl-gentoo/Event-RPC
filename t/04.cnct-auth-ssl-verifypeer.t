@@ -20,7 +20,8 @@ if ( $@ ) {
 
 plan tests => 6;
 
-require "t/Event_RPC_Test_Server.pm";
+use lib 't/lib';
+require Event_RPC_Test_Server;
 my $PORT = Event_RPC_Test_Server->port;
 
 my $AUTH_USER = "foo";

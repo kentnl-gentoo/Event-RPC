@@ -32,9 +32,9 @@ t/05.func.t
 t/06.object2.t
 t/07.maxpacket.t
 t/08.msg_formats.t
-t/Event_RPC_Test.pm
-t/Event_RPC_Test2.pm
-t/Event_RPC_Test_Server.pm
+t/lib/Event_RPC_Test.pm
+t/lib/Event_RPC_Test2.pm
+t/lib/Event_RPC_Test_Server.pm
 t/ssl/ca.crt
 t/ssl/ca.key
 t/ssl/ca-wrong.crt
